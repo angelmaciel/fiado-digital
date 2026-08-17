@@ -37,6 +37,14 @@ enum TipoCodigo {
   RESET_PASSWORD
 }
 
+/// FIADO suma al saldo, PAGO resta, AJUSTE revierte exactamente a otro
+/// movimiento (su efecto es el inverso del que referencia).
+enum TipoMovimiento {
+  FIADO
+  PAGO
+  AJUSTE
+}
+
 model Usuario {
   id           String     @id @default(uuid()) @db.Uuid
   nombre       String     @db.VarChar(120)
@@ -58,6 +66,7 @@ model Usuario {
   despensasPropias Despensa[]           @relation("PropietarioDespensa")
   refreshTokens    RefreshToken[]
   codigos          CodigoVerificacion[]
+  movimientos      Movimiento[]
 
   @@index([despensaId])
   @@map("usuarios")
@@ -93,10 +102,45 @@ model Cliente {
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  despensa Despensa @relation(fields: [despensaId], references: [id], onDelete: Cascade)
+  despensa    Despensa     @relation(fields: [despensaId], references: [id], onDelete: Cascade)
+  movimientos Movimiento[]
 
   @@index([despensaId, nombre])
   @@map("clientes")
+}
+
+/// Fiados, pagos y ajustes. **Inmutable**: nunca se hace UPDATE ni DELETE
+/// sobre esta tabla.
+///
+/// - `monto` es siempre positivo. El signo lo determina el `tipo`, para que no
+///   exista un "fiado negativo" que en realidad sea un pago sin registrar.
+/// - Un AJUSTE siempre referencia al movimiento que corrige y aplica su efecto
+///   inverso. No hay ajustes de monto libre: eso permitiría acomodar un saldo
+///   sin dejar explicado por qué.
+/// - El saldo del cliente se actualiza en la misma transacción que inserta acá.
+model Movimiento {
+  id        String         @id @default(uuid()) @db.Uuid
+  clienteId String         @map("cliente_id") @db.Uuid
+  /// Quién lo registró. Se conserva aunque el usuario se dé de baja.
+  usuarioId String         @map("usuario_id") @db.Uuid
+  tipo      TipoMovimiento
+  /// Guaraníes, entero y positivo.
+  monto     Int
+  detalle   String?        @db.VarChar(255)
+  /// Solo en los AJUSTE: el movimiento que están revirtiendo.
+  movimientoReversaDe String? @unique @map("movimiento_reversa_de") @db.Uuid
+  /// Para el modo offline (HU-07): los creados en el servidor nacen en true.
+  sincronizado Boolean @default(true)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  cliente  Cliente     @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  usuario  Usuario     @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
+  original Movimiento? @relation("Reversa", fields: [movimientoReversaDe], references: [id], onDelete: Restrict)
+  reversa  Movimiento? @relation("Reversa")
+
+  /// El listado del detalle siempre pide los más recientes de un cliente.
+  @@index([clienteId, createdAt])
+  @@map("movimientos")
 }
 
 /// Códigos de 6 dígitos para verificar el correo y para restablecer la
