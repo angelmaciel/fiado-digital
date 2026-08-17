@@ -11,6 +11,7 @@ import '../../auth/domain/usuario.dart';
 import '../application/perfil_controller.dart';
 import '../domain/resumen_despensa.dart';
 import 'widgets/editar_perfil_sheets.dart';
+import 'widgets/salud_del_negocio.dart';
 import 'widgets/tarjeta_metrica.dart';
 
 /// Perfil del dueño y estado del negocio.
@@ -47,7 +48,10 @@ class PerfilScreen extends ConsumerWidget {
                 nombreDespensa: datos.despensa.nombreComercial,
               ),
               const SizedBox(height: 24),
-              _Salud(resumen: datos.resumen),
+              if (datos.resumen.sinDatos)
+                const _TodaviaNadaQueMedir()
+              else
+                SaludDelNegocioCard(resumen: datos.resumen),
               const SizedBox(height: 24),
               Text('Clientes', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 12),
@@ -124,115 +128,39 @@ class _Encabezado extends StatelessWidget {
   }
 }
 
-/// El bloque que contesta "¿voy bien o mal?".
-class _Salud extends StatelessWidget {
-  const _Salud({required this.resumen});
-
-  final ResumenDespensa resumen;
+class _TodaviaNadaQueMedir extends StatelessWidget {
+  const _TodaviaNadaQueMedir();
 
   @override
   Widget build(BuildContext context) {
     final tema = Theme.of(context);
 
-    if (resumen.sinDatos) {
-      return Card(
-        margin: EdgeInsets.zero,
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              Icon(
-                Icons.insights_outlined,
-                size: 40,
-                color: tema.colorScheme.outline,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Todavía no hay nada que medir',
-                style: tema.textTheme.titleSmall,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Cargá tus clientes y empezá a anotar fiados para ver cómo va tu negocio.',
-                style: tema.textTheme.bodySmall,
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Card(
-          margin: EdgeInsets.zero,
-          color: tema.colorScheme.primaryContainer,
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              children: [
-                Text(
-                  'Plata en la calle',
-                  style: tema.textTheme.labelLarge?.copyWith(
-                    color: tema.colorScheme.onPrimaryContainer,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    formatearGuaranies(resumen.deudaTotal),
-                    style: tema.textTheme.displaySmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: tema.colorScheme.onPrimaryContainer,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  resumen.clientesConDeuda == 0
-                      ? 'Nadie te debe nada'
-                      : 'Repartida entre ${resumen.clientesConDeuda} '
-                            '${resumen.clientesConDeuda == 1 ? "cliente" : "clientes"}',
-                  style: tema.textTheme.bodySmall?.copyWith(
-                    color: tema.colorScheme.onPrimaryContainer,
-                  ),
-                ),
-              ],
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            Icon(
+              Icons.insights_outlined,
+              size: 40,
+              color: tema.colorScheme.outline,
             ),
-          ),
+            const SizedBox(height: 12),
+            Text(
+              'Todavía no hay nada que medir',
+              style: tema.textTheme.titleSmall,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Cargá tus clientes y empezá a anotar fiados para ver cómo va tu negocio.',
+              style: tema.textTheme.bodySmall,
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
-        const SizedBox(height: 12),
-        // Aviso honesto: sin movimientos, la mitad de la historia falta.
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: tema.colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(
-                Icons.schedule,
-                size: 18,
-                color: tema.colorScheme.onSurfaceVariant,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Cuánto fiaste y cuánto cobraste este mes se va a poder medir '
-                  'cuando empieces a registrar fiados y pagos.',
-                  style: tema.textTheme.bodySmall,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+      ),
     );
   }
 }

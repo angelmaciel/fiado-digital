@@ -1,10 +1,12 @@
 /**
  * Resumen del estado del negocio.
  *
- * Hoy solo mide lo que se puede calcular con la tabla de clientes. Cuando
- * existan los movimientos (Sprint 2) se agrega el bloque que de verdad responde
- * "¿voy bien o mal?": fiado del mes, cobrado del mes, tasa de recuperación y
- * antigüedad de la deuda.
+ * El bloque `flujo` es el que contesta "¿voy bien o mal?": cuánto salió fiado y
+ * cuánto entró cobrado en el mes, contra el mes anterior.
+ *
+ * Falta todavía la antigüedad de la deuda (cuánto de lo que deben tiene más de
+ * 30, 60 o 90 días), que necesita repartir cada pago contra los fiados más
+ * viejos y es un cálculo bastante más caro.
  */
 export interface ResumenDespensaDto {
   clientes: {
@@ -35,4 +37,32 @@ export interface ResumenDespensaDto {
     /** Clientes cuyo saldo ya superó el límite que les puso el despensero. */
     excedidos: number;
   };
+  flujo: {
+    esteMes: FlujoDelPeriodo;
+    mesPasado: FlujoDelPeriodo;
+    /**
+     * Cobrado ÷ fiado del mes, en porcentaje. Es el indicador más directo de
+     * salud del negocio:
+     *   > 100 → se cobra más de lo que se fía, la deuda baja
+     *   ~ 100 → equilibrio
+     *   < 100 → la deuda crece: cada mes queda más plata en la calle
+     *
+     * Null cuando no se fió nada en el mes: dividir por cero no dice nada.
+     */
+    tasaRecuperacion: number | null;
+    /** Lo mismo para el mes anterior, para saber si mejoró o empeoró. */
+    tasaRecuperacionMesPasado: number | null;
+  };
+}
+
+export interface FlujoDelPeriodo {
+  /** Suma de los fiados del período, en guaraníes. */
+  fiado: number;
+  /** Suma de los pagos recibidos en el período. */
+  cobrado: number;
+  /**
+   * Cuánto creció (positivo) o bajó (negativo) la deuda en el período.
+   * Es simplemente `fiado - cobrado`.
+   */
+  variacionDeuda: number;
 }
