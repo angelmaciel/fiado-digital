@@ -96,6 +96,25 @@ real, escribí una clase que implemente `EmailService` y cambiá el `useClass` e
 [src/common/email/email.module.ts](src/common/email/email.module.ts). Nada más
 se entera del cambio.
 
+## Datos de demostración
+
+Para tener con qué mostrar la app en una revisión de sprint sin cargar clientes
+a mano:
+
+```bash
+npm run seed:demo -- --email dueno@ejemplo.com
+npm run seed:demo -- --limpiar --sembrar --email dueno@ejemplo.com   # regenera
+```
+
+Siembra 14 clientes con nombres paraguayos y ~55 movimientos repartidos en los
+últimos 90 días, con montos de una despensa real (compras de 15.000 a 180.000
+Gs, pagos que casi nunca cancelan todo). Incluye a propósito los casos que la
+app tiene que saber mostrar: alguien pasado de su límite, alguien sin pagar
+hace tres meses, un fiado corregido con su ajuste, y clientes al día.
+
+`--limpiar` borra **solo** los clientes sembrados, por nombre: no toca los
+reales.
+
 ## Decisiones que conviene recordar
 
 - **Guard global cerrado**: sin `@Public()` un endpoint nuevo nace protegido.

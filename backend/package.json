@@ -17,7 +17,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "seed:demo": "node prisma/seed-demo.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.6",
