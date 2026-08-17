@@ -57,6 +57,32 @@ class GoogleAuthService {
   /// Debe completarse antes de renderizar el botón de Google en Web.
   Future<void> inicializar() => _inicializar();
 
+  /// Intento de entrada sin fricción: One Tap en Android, FedCM en Web.
+  ///
+  /// Le muestra al usuario las cuentas de Google que ya tiene en el dispositivo
+  /// para que entre con un toque, sin pasar por el selector completo.
+  ///
+  /// Devuelve el `id_token` si la plataforma resolvió el intento, o null en dos
+  /// casos distintos que acá se tratan igual:
+  /// - no había ninguna sesión de Google que reutilizar;
+  /// - la plataforma no resuelve por retorno sino por evento (es lo que hace
+  ///   FedCM en Web), y el token va a llegar por `idTokensDelBotonWeb`.
+  Future<String?> intentarEntradaRapida() async {
+    await _inicializar();
+
+    try {
+      final intento = GoogleSignIn.instance.attemptLightweightAuthentication();
+      if (intento == null) return null;
+
+      final cuenta = await intento;
+      return cuenta?.authentication.idToken;
+    } on GoogleSignInException {
+      // Un intento silencioso que falla no es un error que mostrarle a nadie:
+      // simplemente se cae al login normal.
+      return null;
+    }
+  }
+
   /// Android: devuelve el `id_token` que después verifica el backend.
   Future<String> obtenerIdToken() async {
     await _inicializar();

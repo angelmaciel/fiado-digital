@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/app_config.dart';
@@ -90,6 +92,10 @@ class AuthController extends Notifier<AuthState> {
 
     if (token == null) {
       state = const AuthState(estado: EstadoSesion.sinSesion);
+      // Sin sesión guardada, se ofrece entrar con una cuenta de Google que ya
+      // esté en el dispositivo. No bloquea la pantalla: si no hay ninguna, o
+      // el usuario la ignora, queda el login normal a la vista.
+      unawaited(_intentarEntradaRapidaConGoogle());
       return;
     }
 
@@ -125,6 +131,25 @@ class AuthController extends Notifier<AuthState> {
       state = state.copyWith(procesando: false, error: e.mensaje);
     } catch (e) {
       state = state.copyWith(procesando: false, error: e.toString());
+    }
+  }
+
+  /// One Tap / FedCM: entrar con una cuenta que ya está en el dispositivo.
+  ///
+  /// Corre en segundo plano y en silencio. No toca `procesando` a propósito:
+  /// si bloqueara la pantalla y el usuario ignorara el diálogo, se quedaría con
+  /// los botones deshabilitados sin entender por qué.
+  Future<void> _intentarEntradaRapidaConGoogle() async {
+    try {
+      final idToken = await _google.intentarEntradaRapida();
+      if (idToken == null) return;
+
+      // Si mientras tanto entró por otro camino, no se pisa esa sesión.
+      if (state.estado != EstadoSesion.sinSesion) return;
+
+      await _canjearIdTokenPorSesion(idToken);
+    } on ApiException {
+      // El backend rechazó el token. Queda el login normal disponible.
     }
   }
 
