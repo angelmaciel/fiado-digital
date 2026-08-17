@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../auth/application/auth_controller.dart';
 import '../data/clientes_api.dart';
 import '../domain/cliente.dart';
 
@@ -53,6 +54,23 @@ class ClientesController extends AsyncNotifier<ClientesState> {
 
   @override
   Future<ClientesState> build() async {
+    // La lista se ata a la despensa activa. Los providers de Riverpod no se
+    // descartan solos, así que sin esto la lista de un usuario sobreviviría a
+    // un cierre de sesión y el siguiente en entrar vería los clientes del
+    // anterior. Al declarar la dependencia, cambiar de cuenta la reconstruye.
+    final despensaId = ref.watch(
+      authControllerProvider.select((estado) => estado.usuario?.despensaId),
+    );
+
+    if (despensaId == null) {
+      return const ClientesState(
+        clientes: [],
+        pagina: 1,
+        totalPaginas: 1,
+        total: 0,
+      );
+    }
+
     final busqueda = ref.watch(busquedaClientesProvider);
     final pagina = await ref
         .read(clientesApiProvider)
@@ -147,5 +165,10 @@ final clientesControllerProvider =
 
 /// Detalle de un cliente puntual, siempre fresco desde el backend.
 final clienteProvider = FutureProvider.family<Cliente, String>((ref, id) {
+  // Misma razón que en la lista: si cambia la despensa, este detalle se
+  // reconstruye en vez de quedar mostrando el de la sesión anterior.
+  ref.watch(
+    authControllerProvider.select((estado) => estado.usuario?.despensaId),
+  );
   return ref.watch(clientesApiProvider).obtener(id);
 });
