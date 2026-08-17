@@ -257,6 +257,18 @@ class AuthController extends Notifier<AuthState> {
     );
   }
 
+  /// Relee el usuario desde el backend. Se llama después de editar el perfil,
+  /// para que el nombre nuevo se vea sin tener que cerrar sesión.
+  Future<void> refrescarUsuario() async {
+    try {
+      final usuario = await _api.obtenerUsuarioActual();
+      state = AuthState(estado: _estadoSegun(usuario), usuario: usuario);
+    } on ApiException {
+      // Si falla, se conserva el estado actual: no vale la pena sacar al
+      // usuario de la app porque no se pudo refrescar su nombre.
+    }
+  }
+
   /// Completa el onboarding creando la despensa del dueño.
   Future<void> crearDespensa({
     required String nombreComercial,

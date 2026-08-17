@@ -50,6 +50,13 @@ export class UsuariosService {
     });
   }
 
+  async actualizarPerfil(id: string, nombre: string): Promise<Usuario> {
+    return this.prisma.usuario.update({
+      where: { id },
+      data: { nombre: nombre.trim() },
+    });
+  }
+
   async marcarEmailVerificado(id: string): Promise<Usuario> {
     return this.prisma.usuario.update({
       where: { id },

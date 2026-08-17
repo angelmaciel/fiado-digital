@@ -263,6 +263,43 @@ export class AuthService {
     return this.emitirSesionPara(actualizado, userAgent);
   }
 
+  /**
+   * Cambio de contraseña desde adentro. Exige la actual: un access token robado
+   * no debería alcanzar para quedarse con la cuenta.
+   *
+   * Igual que el reseteo, cierra las demás sesiones — pero deja viva la del
+   * dispositivo que hizo el cambio, así el usuario no se autoexpulsa.
+   */
+  async cambiarPassword(
+    usuarioId: string,
+    passwordActual: string,
+    nuevaPassword: string,
+    refreshTokenActual?: string,
+  ): Promise<{ mensaje: string }> {
+    const usuario = await this.usuarios.buscarPorId(usuarioId);
+
+    if (!usuario.passwordHash) {
+      throw new ConflictException(
+        'Tu cuenta entra con Google y no tiene contraseña para cambiar.',
+      );
+    }
+
+    const coincide = await this.passwords.verificar(passwordActual, usuario.passwordHash);
+    if (!coincide) {
+      throw new UnauthorizedException('La contraseña actual no es correcta.');
+    }
+
+    await this.usuarios.cambiarPassword(
+      usuario.id,
+      await this.passwords.hashear(nuevaPassword),
+    );
+
+    await this.tokens.revocarTodosLosTokensSalvo(usuario.id, refreshTokenActual);
+    this.logger.log(`Contraseña cambiada por el propio usuario ${usuario.id}`);
+
+    return { mensaje: 'Contraseña actualizada. Se cerraron las otras sesiones.' };
+  }
+
   /** Canje del refresh token por un access token nuevo (rota el refresh). */
   async refrescarSesion(refreshToken: string, userAgent?: string): Promise<AuthResponseDto> {
     const { usuario, refreshToken: nuevoRefresh } = await this.tokens.rotarRefreshToken(

@@ -96,6 +96,24 @@ export class TokensService {
     });
   }
 
+  /**
+   * Cierra todas las sesiones menos una. Se usa al cambiar la contraseña desde
+   * adentro: expulsa al resto de los dispositivos sin echar al que la cambió.
+   */
+  async revocarTodosLosTokensSalvo(
+    usuarioId: string,
+    tokenAConservar?: string,
+  ): Promise<void> {
+    await this.prisma.refreshToken.updateMany({
+      where: {
+        usuarioId,
+        revokedAt: null,
+        ...(tokenAConservar && { tokenHash: { not: this.hashear(tokenAConservar) } }),
+      },
+      data: { revokedAt: new Date() },
+    });
+  }
+
   /** Segundos de vida del access token, para informárselos a la app. */
   segundosDeVidaAccessToken(): number {
     const match = /^(\d+)([smhd])$/.exec(this.accessTtl.trim());

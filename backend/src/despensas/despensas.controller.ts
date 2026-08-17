@@ -6,6 +6,7 @@ import type { UsuarioAutenticado } from '../common/types/usuario-autenticado';
 import { DespensasService } from './despensas.service';
 import { ActualizarDespensaDto } from './dto/actualizar-despensa.dto';
 import { CrearDespensaDto } from './dto/crear-despensa.dto';
+import type { ResumenDespensaDto } from './dto/resumen-despensa.dto';
 
 @Controller('despensas')
 export class DespensasController {
@@ -24,6 +25,13 @@ export class DespensasController {
   @UseGuards(DespensaGuard)
   async miDespensa(@CurrentUser() usuario: UsuarioAutenticado): Promise<Despensa> {
     return this.despensas.buscarPorId(usuario.despensaId!);
+  }
+
+  /** Métricas del negocio para la pantalla de perfil. */
+  @Get('mia/resumen')
+  @UseGuards(DespensaGuard)
+  async resumen(@CurrentUser() usuario: UsuarioAutenticado): Promise<ResumenDespensaDto> {
+    return this.despensas.resumen(usuario.despensaId!);
   }
 
   @Patch('mia')

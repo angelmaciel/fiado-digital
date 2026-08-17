@@ -6,7 +6,6 @@ import '../../../core/network/api_exception.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/guaranies.dart';
-import '../../auth/application/auth_controller.dart';
 import '../application/clientes_controller.dart';
 import '../domain/cliente.dart';
 import 'widgets/form_cliente_sheet.dart';
@@ -80,10 +79,9 @@ class _ClientesScreenState extends ConsumerState<ClientesScreen> {
         title: const Text('Clientes'),
         actions: [
           IconButton(
-            tooltip: 'Cerrar sesión',
-            icon: const Icon(Icons.logout),
-            onPressed: () =>
-                ref.read(authControllerProvider.notifier).cerrarSesion(),
+            tooltip: 'Mi negocio',
+            icon: const Icon(Icons.insights_outlined),
+            onPressed: () => context.go(Rutas.perfil),
           ),
         ],
         bottom: PreferredSize(
