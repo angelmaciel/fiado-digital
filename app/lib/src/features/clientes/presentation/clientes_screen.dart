@@ -6,6 +6,7 @@ import '../../../core/network/api_exception.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/guaranies.dart';
+import '../../auth/application/auth_controller.dart';
 import '../application/clientes_controller.dart';
 import '../domain/cliente.dart';
 import 'widgets/form_cliente_sheet.dart';
@@ -76,14 +77,16 @@ class _ClientesScreenState extends ConsumerState<ClientesScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Clientes'),
-        actions: [
-          IconButton(
-            tooltip: 'Mi negocio',
-            icon: const Icon(Icons.insights_outlined),
+        titleSpacing: 8,
+        title: Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
             onPressed: () => context.go(Rutas.perfil),
+            icon: const Icon(Icons.insights_outlined),
+            label: const Text('Mi negocio'),
           ),
-        ],
+        ),
+        actions: const [_NombreDelDueno(), _BotonCerrarSesion()],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(64),
           child: Padding(
@@ -139,6 +142,49 @@ class _ClientesScreenState extends ConsumerState<ClientesScreen> {
           );
         },
       ),
+    );
+  }
+}
+
+/// Nombre del dueño en la barra. Se oculta en pantallas angostas: en un
+/// celular chico compite por espacio con el botón de "Mi negocio", y el nombre
+/// propio es el dato menos necesario de los dos.
+class _NombreDelDueno extends ConsumerWidget {
+  const _NombreDelDueno();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final nombre = ref.watch(
+      authControllerProvider.select((estado) => estado.usuario?.nombre),
+    );
+
+    if (nombre == null || nombre.isEmpty) return const SizedBox.shrink();
+    if (MediaQuery.sizeOf(context).width < 420) return const SizedBox.shrink();
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 180),
+        child: Text(
+          nombre,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+      ),
+    );
+  }
+}
+
+class _BotonCerrarSesion extends ConsumerWidget {
+  const _BotonCerrarSesion();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final color = Theme.of(context).colorScheme.error;
+
+    return IconButton(
+      tooltip: 'Cerrar sesión',
+      icon: Icon(Icons.logout, color: color),
+      onPressed: () => ref.read(authControllerProvider.notifier).cerrarSesion(),
     );
   }
 }
