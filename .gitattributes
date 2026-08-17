@@ -1,0 +1,25 @@
+# Normaliza los finales de línea. Sin esto, trabajando desde Windows Git guarda
+# CRLF en el repo y cualquier diff aparece con el archivo entero modificado.
+* text=auto eol=lf
+
+# Estos SÍ necesitan CRLF para funcionar en Windows.
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+*.ps1  text eol=crlf
+
+# Binarios: que Git no intente convertirlos.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.ttf  binary
+*.otf  binary
+*.woff binary
+*.woff2 binary
+*.jar  binary
+*.keystore binary
+
+# Archivos generados: se muestran colapsados en los diffs de GitHub.
+package-lock.json linguist-generated=true
+pubspec.lock      linguist-generated=true

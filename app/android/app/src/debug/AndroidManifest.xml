@@ -1,0 +1,15 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- The INTERNET permission is required for development. Specifically,
+         the Flutter tool needs it to communicate with the running application
+         to allow setting breakpoints, to provide hot reload, etc.
+    -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- Android 9 (API 28) en adelante bloquea el tráfico HTTP sin TLS. En
+         desarrollo la API corre en http://10.0.2.2:3000, así que hay que
+         permitirlo explícitamente.
+
+         Va SOLO en el manifest de debug: el build de release sigue exigiendo
+         HTTPS, que es lo que corresponde en producción. -->
+    <application android:usesCleartextTraffic="true" />
+</manifest>

@@ -1,0 +1,4 @@
+# Sprint 4 — HU-11 cargar método de pago, HU-12 compartir método de pago.
+#
+# Sin pasarela de pago en el MVP: los datos (banco, titular, alias, cuenta) se
+# comparten manualmente por copiar/pegar o WhatsApp.

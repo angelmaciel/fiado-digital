@@ -1,0 +1,6 @@
+# Sprint 2 — HU-03 registrar fiado, HU-04 registrar pago, HU-05 ver saldo.
+# Sprint 4 — HU-10 corrección vía movimiento AJUSTE.
+#
+# Recordatorio de diseño: los movimientos son INMUTABLES. Nada de UPDATE ni
+# DELETE sobre la tabla; una corrección es un registro nuevo de tipo AJUSTE con
+# `movimiento_reversa_de` apuntando al original.

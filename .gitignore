@@ -1,0 +1,33 @@
+# Dependencias
+node_modules/
+
+# Entorno / secretos
+.env
+.env.*
+!.env.example
+*.pem
+!**/*.example.pem
+
+# Build
+dist/
+build/
+coverage/
+
+# Flutter / Dart
+app/.dart_tool/
+app/.flutter-plugins
+app/.flutter-plugins-dependencies
+app/build/
+app/android/.gradle/
+app/android/local.properties
+app/windows/flutter/ephemeral/
+app/**/*.g.dart
+app/**/*.freezed.dart
+
+# Editores / SO
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+Thumbs.db
+Desktop.ini

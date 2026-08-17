@@ -1,0 +1,141 @@
+// Fiado Digital — schema inicial (Sprint 1)
+//
+// Notas de diseño:
+// - Los montos en guaraníes se guardan como Int (sin decimales). El máximo de
+//   Int en PostgreSQL es 2.147.483.647 Gs, muy por encima del saldo realista de
+//   un cliente de despensa. Se evita BigInt a propósito: serializa mal a JSON.
+// - Los nombres de columna van en snake_case vía @map para que la DB quede
+//   consistente con la nomenclatura del modelo de datos del proyecto.
+// - Movimiento y MetodoPago llegan en Sprints 2 y 4; sus módulos ya existen
+//   como carpetas vacías en src/.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+/// Cómo se autentica el usuario. En el MVP solo se usa GOOGLE (HU-01);
+/// EMAIL_PASSWORD queda modelado para no migrar la tabla más adelante.
+enum MetodoAuth {
+  GOOGLE
+  EMAIL_PASSWORD
+}
+
+/// DUENO = "dueño" (se evita la ñ en el identificador del enum).
+enum RolUsuario {
+  DUENO
+  EMPLEADO
+}
+
+enum TipoCodigo {
+  VERIFICACION_EMAIL
+  RESET_PASSWORD
+}
+
+model Usuario {
+  id           String     @id @default(uuid()) @db.Uuid
+  nombre       String     @db.VarChar(120)
+  email        String     @unique @db.VarChar(180)
+  metodoAuth   MetodoAuth @map("metodo_auth")
+  googleUid    String?    @unique @map("google_uid") @db.VarChar(64)
+  /// Solo se usa con metodoAuth = EMAIL_PASSWORD. Null en usuarios de Google.
+  passwordHash String?    @map("password_hash")
+  /// Los usuarios de Google nacen verificados (Google ya validó el correo).
+  /// Los de email/contraseña recién cuando ingresan el código de 6 dígitos.
+  emailVerificado Boolean @default(false) @map("email_verificado")
+  rol          RolUsuario @default(DUENO)
+  /// Null hasta que el usuario completa el onboarding y crea/se une a una despensa.
+  despensaId   String?    @map("despensa_id") @db.Uuid
+  createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  despensa         Despensa?            @relation("MiembrosDespensa", fields: [despensaId], references: [id], onDelete: SetNull)
+  despensasPropias Despensa[]           @relation("PropietarioDespensa")
+  refreshTokens    RefreshToken[]
+  codigos          CodigoVerificacion[]
+
+  @@index([despensaId])
+  @@map("usuarios")
+}
+
+model Despensa {
+  id              String   @id @default(uuid()) @db.Uuid
+  nombreComercial String   @map("nombre_comercial") @db.VarChar(160)
+  propietarioId   String   @map("propietario_id") @db.Uuid
+  /// Días sin pagar a partir de los cuales un cliente se considera en mora (HU-06).
+  diasMoraConfig  Int      @default(30) @map("dias_mora_config")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  propietario Usuario   @relation("PropietarioDespensa", fields: [propietarioId], references: [id], onDelete: Restrict)
+  miembros    Usuario[] @relation("MiembrosDespensa")
+  clientes    Cliente[]
+
+  @@index([propietarioId])
+  @@map("despensas")
+}
+
+model Cliente {
+  id         String   @id @default(uuid()) @db.Uuid
+  despensaId String   @map("despensa_id") @db.Uuid
+  nombre     String   @db.VarChar(120)
+  telefono   String?  @db.VarChar(30)
+  /// Límite de crédito en guaraníes. Null = sin límite (HU-08).
+  limiteCredito Int?  @map("limite_credito")
+  /// Saldo denormalizado en guaraníes: Σ FIADO − Σ PAGO (± AJUSTE).
+  /// A partir del Sprint 2 lo recalcula la transacción que crea movimientos.
+  saldoActual Int     @default(0) @map("saldo_actual")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  despensa Despensa @relation(fields: [despensaId], references: [id], onDelete: Cascade)
+
+  @@index([despensaId, nombre])
+  @@map("clientes")
+}
+
+/// Códigos de 6 dígitos para verificar el correo y para restablecer la
+/// contraseña.
+///
+/// Se guarda el SHA-256, no el código en claro. Un código de 6 dígitos tiene
+/// solo un millón de combinaciones, así que el hash por sí solo no lo protege
+/// de una tabla precomputada: la defensa real es que vence a los 10 minutos,
+/// sirve una sola vez y se invalida a los 5 intentos fallidos.
+model CodigoVerificacion {
+  id         String     @id @default(uuid()) @db.Uuid
+  usuarioId  String     @map("usuario_id") @db.Uuid
+  tipo       TipoCodigo
+  codigoHash String     @map("codigo_hash") @db.VarChar(64)
+  expiresAt  DateTime   @map("expires_at") @db.Timestamptz(3)
+  usedAt     DateTime?  @map("used_at") @db.Timestamptz(3)
+  intentos   Int        @default(0)
+  createdAt  DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId, tipo])
+  @@map("codigos_verificacion")
+}
+
+/// Refresh tokens (30 días). Se guarda únicamente el SHA-256 del token; el valor
+/// en claro solo existe en el cliente. La rotación revoca el token usado.
+model RefreshToken {
+  id         String    @id @default(uuid()) @db.Uuid
+  usuarioId  String    @map("usuario_id") @db.Uuid
+  tokenHash  String    @unique @map("token_hash") @db.VarChar(64)
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz(3)
+  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz(3)
+  /// Metadatos para poder listar/cerrar sesiones por dispositivo.
+  userAgent  String?   @map("user_agent") @db.VarChar(255)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId])
+  @@map("refresh_tokens")
+}

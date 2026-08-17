@@ -1,0 +1,74 @@
+name: CI
+
+# Corre en los pushes a las ramas de integración y en cualquier PR hacia ellas.
+# Las ramas feature/* no disparan la CI por sí solas para no gastar minutos:
+# se validan al abrir el PR.
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  backend:
+    name: Backend (NestJS)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      # `npm ci` dispara el postinstall que corre `prisma generate`. No necesita
+      # conexión a la base: solo lee el schema.
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Verificar tipos
+        run: npx tsc --noEmit -p tsconfig.build.json
+
+      - name: Compilar
+        run: npm run build
+
+  app:
+    name: App (Flutter)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Se fija la versión en vez de usar "stable" para que una release nueva de
+      # Flutter no rompa la CI sin que hayamos tocado nada.
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.0'
+          channel: stable
+          cache: true
+
+      - name: Instalar dependencias
+        run: flutter pub get
+
+      - name: Verificar formato
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Analizar
+        run: flutter analyze
+
+      - name: Tests
+        run: flutter test
+
+      # El Client ID es un valor de compilación, no un secreto: va embebido en
+      # el JavaScript que descarga cualquier visitante. Acá alcanza un
+      # placeholder porque solo se está verificando que compile.
+      - name: Compilar para Web
+        run: flutter build web --dart-define=GOOGLE_WEB_CLIENT_ID=ci-placeholder.apps.googleusercontent.com

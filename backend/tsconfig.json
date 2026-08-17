@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "declaration": true,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "target": "ES2023",
+    "sourceMap": true,
+    "outDir": "./dist",
+    // Explícito para que el layout de dist/ no dependa de qué archivos entren
+    // en la compilación (TS 7 deja de inferirlo).
+    "rootDir": "./src",
+    "incremental": true,
+    // Dentro de dist/ a propósito: `nest-cli.json` tiene `deleteOutDir: true`,
+    // así que la caché incremental se borra junto con la salida. Si queda
+    // afuera se desincronizan, y TypeScript compila "sin errores" pero no emite
+    // nada porque cree que dist/ ya está al día.
+    "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo",
+    "skipLibCheck": true,
+    "strict": true,
+    "strictNullChecks": true,
+    "strictPropertyInitialization": false,
+    "noImplicitAny": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}
