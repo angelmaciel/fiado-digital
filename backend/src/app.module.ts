@@ -10,6 +10,7 @@ import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter'
 import { PrismaModule } from './common/prisma/prisma.module';
 import { DespensasModule } from './despensas/despensas.module';
 import { HealthController } from './health.controller';
+import { MovimientosModule } from './movimientos/movimientos.module';
 import { UsuariosModule } from './usuarios/usuarios.module';
 
 @Module({
@@ -25,7 +26,7 @@ import { UsuariosModule } from './usuarios/usuarios.module';
     UsuariosModule,
     DespensasModule,
     ClientesModule,
-    // Sprint 2: MovimientosModule (HU-03, HU-04, HU-05)
+    MovimientosModule,
     // Sprint 4: MetodosPagoModule (HU-11, HU-12)
   ],
   controllers: [HealthController],
