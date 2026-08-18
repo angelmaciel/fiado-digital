@@ -17,21 +17,16 @@ class AvisoSinConexion extends ConsumerWidget {
 
     final esquema = Theme.of(context).colorScheme;
     final sinRed = !estado.hayConexion;
-    final plural = estado.pendientes == 1 ? 'movimiento' : 'movimientos';
 
     final color = sinRed
         ? esquema.onErrorContainer
         : esquema.onTertiaryContainer;
     final fondo = sinRed ? esquema.errorContainer : esquema.tertiaryContainer;
-    final icono = sinRed ? Icons.cloud_off : Icons.cloud_upload_outlined;
+    final icono = estado.esGrave
+        ? Icons.warning_amber_rounded
+        : (sinRed ? Icons.cloud_off : Icons.cloud_upload_outlined);
 
-    final texto = sinRed
-        ? (estado.pendientes > 0
-              ? 'Sin internet. ${estado.pendientes} $plural se van a subir solos.'
-              : 'Sin internet. Podés seguir anotando igual.')
-        : (estado.sincronizando
-              ? 'Subiendo ${estado.pendientes}…'
-              : '${estado.pendientes} $plural sin subir');
+    final texto = estado.aviso;
 
     return Material(
       color: fondo,

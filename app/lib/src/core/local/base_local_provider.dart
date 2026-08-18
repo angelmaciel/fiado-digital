@@ -52,8 +52,14 @@ final baseLocalSiEstaListaProvider = Provider<BaseLocal?>((ref) {
   return ref.watch(baseLocalProvider).value;
 });
 
-/// Si esta build guarda datos en el dispositivo. La UI lo usa para no prometer
-/// un modo sin conexión que en Web no existe.
-final soportaModoSinConexionProvider = Provider<bool>(
-  (ref) => hayBaseLocalDisponible,
-);
+/// Si un fiado hecho ahora mismo sin internet se guardaría en el dispositivo.
+///
+/// No alcanza con preguntarle a la plataforma. La base puede no haber terminado
+/// de abrir, o haber fallado al abrirse —clave perdida, binario sin cifrado,
+/// disco lleno—, y en los dos casos el movimiento no se guarda en ninguna
+/// parte. Antes esto devolvía una constante de plataforma, así que decía que sí
+/// aunque la base estuviera rota, y la app terminaba prometiendo que se podía
+/// seguir anotando sin conexión cuando no se podía.
+final puedeGuardarSinConexionProvider = Provider<bool>((ref) {
+  return ref.watch(baseLocalProvider).value != null;
+});

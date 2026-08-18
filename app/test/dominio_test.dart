@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:fiado_digital/src/core/local/sincronizacion.dart';
 import 'package:fiado_digital/src/core/network/api_exception.dart';
 import 'package:fiado_digital/src/features/movimientos/domain/movimiento.dart';
 import 'package:fiado_digital/src/features/perfil/domain/resumen_despensa.dart';
@@ -178,6 +179,65 @@ void main() {
         numeroCuenta: '620145878',
       );
       expect(soloCuenta.datoPrincipal, '620145878');
+    });
+  });
+
+  group('EstadoOffline.aviso', () {
+    EstadoOffline estado({
+      bool hayConexion = true,
+      int pendientes = 0,
+      bool sincronizando = false,
+      bool puedeAnotar = true,
+    }) => EstadoOffline(
+      hayConexion: hayConexion,
+      pendientes: pendientes,
+      sincronizando: sincronizando,
+      puedeAnotar: puedeAnotar,
+    );
+
+    // Esta es la que importa: sin red y sin base local, el fiado no se guarda
+    // en ninguna parte. Prometer que se puede seguir anotando hace que el
+    // despensero le fíe a alguien y pierda el registro.
+    test('sin red y sin base local NO promete que se pueda anotar', () {
+      final aviso = estado(hayConexion: false, puedeAnotar: false).aviso;
+
+      expect(aviso, isNot(contains('Podés seguir anotando')));
+      expect(aviso, contains('Esperá'));
+    });
+
+    test('sin red y sin base local es el caso grave', () {
+      expect(estado(hayConexion: false, puedeAnotar: false).esGrave, isTrue);
+      expect(estado(hayConexion: false).esGrave, isFalse);
+      expect(estado(puedeAnotar: false).esGrave, isFalse);
+    });
+
+    test('sin red pero con base local sí invita a seguir anotando', () {
+      expect(
+        estado(hayConexion: false).aviso,
+        'Sin internet. Podés seguir anotando igual.',
+      );
+    });
+
+    test('sin red con cosas encoladas dice cuántas son', () {
+      expect(
+        estado(hayConexion: false, pendientes: 3).aviso,
+        'Sin internet. 3 movimientos se van a subir solos.',
+      );
+      expect(
+        estado(hayConexion: false, pendientes: 1).aviso,
+        'Sin internet. 1 movimiento se va a subir solo.',
+      );
+    });
+
+    test('con red avisa lo que falta subir, y si está subiendo lo dice', () {
+      expect(estado(pendientes: 2).aviso, '2 movimientos sin subir');
+      expect(estado(pendientes: 2, sincronizando: true).aviso, 'Subiendo 2…');
+    });
+
+    test('no molesta cuando no hay nada que decir', () {
+      expect(estado().hayAlgoQueAvisar, isFalse);
+      expect(estado(pendientes: 1).hayAlgoQueAvisar, isTrue);
+      expect(estado(hayConexion: false).hayAlgoQueAvisar, isTrue);
     });
   });
 }

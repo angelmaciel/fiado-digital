@@ -512,7 +512,7 @@
           </div>
           <div class="cifra">
             <dt>App</dt>
-            <dd>23<small>pruebas automatizadas</small></dd>
+            <dd>29<small>pruebas automatizadas</small></dd>
           </div>
           <div class="cifra">
             <dt>Contra la API real</dt>
@@ -520,12 +520,12 @@
           </div>
           <div class="cifra">
             <dt>Defectos</dt>
-            <dd>16<small>encontrados y corregidos</small></dd>
+            <dd>17<small>encontrados y corregidos</small></dd>
           </div>
         </dl>
 
         <pre><code>cd backend &amp;&amp; npm test      # 58 pruebas, ~2 segundos
-cd app     &amp;&amp; flutter test   # 23 pruebas</code></pre>
+cd app     &amp;&amp; flutter test   # 29 pruebas</code></pre>
 
         <p>
           Las dos suites corren en cada push a <code>main</code> y
@@ -588,7 +588,7 @@ cd app     &amp;&amp; flutter test   # 23 pruebas</code></pre>
             <tbody>
               <tr><td class="clave"><code>widget_test.dart</code></td><td class="num">3</td><td>Formato y lectura de guaraníes</td></tr>
               <tr><td class="clave"><code>whatsapp_test.dart</code></td><td class="num">4</td><td>Conversión de teléfonos paraguayos al formato internacional</td></tr>
-              <tr><td class="clave"><code>dominio_test.dart</code></td><td class="num">16</td><td>Efecto de cada movimiento sobre el saldo, veredicto de salud del negocio, lectura de errores de la API, armado del mensaje de método de pago</td></tr>
+              <tr><td class="clave"><code>dominio_test.dart</code></td><td class="num">22</td><td>Efecto de cada movimiento sobre el saldo, veredicto de salud del negocio, lectura de errores de la API, armado del mensaje de método de pago, y qué promete la franja de sin conexión</td></tr>
             </tbody>
           </table>
         </div>
@@ -1176,16 +1176,18 @@ cd tools/capturas &amp;&amp; npm run capturar     # las once capturas, ~90 segun
               <tr><td class="orden">14</td><td>Un archivo temporal con un token de prueba se subió al repositorio</td><td>Auditoría del repositorio</td></tr>
               <tr><td class="orden">15</td><td><strong>“Pasarle cómo pagarme” decía que no había ninguna cuenta cargada</strong> la primera vez que se abría en cada sesión, teniéndolas</td><td>Al automatizar las capturas</td></tr>
               <tr><td class="orden">16</td><td>La etiqueta “100%” de la barra de recuperación salía cortada al medio</td><td>Al revisar las capturas generadas</td></tr>
+              <tr><td class="orden">17</td><td><strong>La franja decía “Sin internet, podés seguir anotando igual” aunque la base local no estuviera disponible</strong>, y cada fiado fallaba</td><td>Al verificar el modo sin conexión en Windows</td></tr>
             </tbody>
           </table>
         </div>
 
         <p>
-          Vale la pena mirar la columna de la derecha. <strong>Nueve de los
-          dieciséis aparecieron probando de verdad</strong>, no leyendo código:
+          Vale la pena mirar la columna de la derecha. <strong>Ocho de los
+          diecisiete no había forma de encontrarlos leyendo código</strong>:
           tres solo en un celular real, uno solo con veinte peticiones
-          simultáneas, uno solo al cambiar de cuenta, y dos solo al mirar
-          capturas de las pantallas terminadas.
+          simultáneas, uno solo al cambiar de cuenta, dos solo al mirar
+          capturas de las pantallas terminadas, y uno al ir a probar el modo sin
+          conexión en Windows.
         </p>
 
         <h3>El defecto 7, el más serio</h3>

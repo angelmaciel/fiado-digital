@@ -132,14 +132,48 @@ class EstadoOffline {
     required this.hayConexion,
     required this.pendientes,
     required this.sincronizando,
+    required this.puedeAnotar,
   });
 
   final bool hayConexion;
   final int pendientes;
   final bool sincronizando;
 
+  /// Si un movimiento hecho sin internet se guardaría en el dispositivo.
+  final bool puedeAnotar;
+
   /// Solo se muestra el aviso si hay algo que decir.
   bool get hayAlgoQueAvisar => !hayConexion || pendientes > 0;
+
+  /// Cuando no hay red y tampoco base local, lo que se pierde no es una
+  /// comodidad: el fiado no se guarda en ningún lado. Merece el tono más fuerte
+  /// del aviso.
+  bool get esGrave => !hayConexion && !puedeAnotar;
+
+  /// El texto de la franja.
+  ///
+  /// Vive acá y no en el widget porque es el punto donde la app le promete algo
+  /// al usuario, y una promesa falsa —"podés seguir anotando" cuando el
+  /// movimiento se va a perder— es peor que no avisar nada. Estando afuera del
+  /// widget se puede probar sin construir pantalla.
+  String get aviso {
+    final plural = pendientes == 1 ? 'movimiento' : 'movimientos';
+
+    if (!hayConexion) {
+      if (!puedeAnotar) {
+        return 'Sin internet y sin guardado en este dispositivo. '
+            'Esperá a que vuelva la señal para anotar.';
+      }
+      if (pendientes > 0) {
+        final solos = pendientes == 1 ? 'se va a subir solo' : 'se van a subir solos';
+        return 'Sin internet. $pendientes $plural $solos.';
+      }
+      return 'Sin internet. Podés seguir anotando igual.';
+    }
+
+    if (sincronizando) return 'Subiendo $pendientes…';
+    return '$pendientes $plural sin subir';
+  }
 }
 
 final estadoOfflineProvider = Provider<EstadoOffline>((ref) {
@@ -148,5 +182,6 @@ final estadoOfflineProvider = Provider<EstadoOffline>((ref) {
     pendientes: ref.watch(pendientesDeSubirProvider).value ?? 0,
     sincronizando:
         ref.watch(sincronizadorProvider) == EstadoSincronizacion.subiendo,
+    puedeAnotar: ref.watch(puedeGuardarSinConexionProvider),
   );
 });
