@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/widgets/hoja_modal.dart';
+
 import '../../../../core/network/api_exception.dart';
 import '../../../auth/presentation/widgets/auth_scaffold.dart';
 import '../../application/perfil_controller.dart';
@@ -56,35 +58,26 @@ class _HojaDeEdicionState extends State<_HojaDeEdicion> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
-        child: Form(
-          key: widget.formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                widget.titulo,
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 20),
-              if (_error != null) ...[
-                AvisoDeError(mensaje: _error!),
-                const SizedBox(height: 16),
-              ],
-              ...widget.campos,
-              const SizedBox(height: 24),
-              FilledButton(
-                onPressed: _guardando ? null : _guardar,
-                child: Text(_guardando ? 'Guardando…' : 'Guardar'),
-              ),
+    return ContenidoDeHoja(
+      child: Form(
+        key: widget.formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(widget.titulo, style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 20),
+            if (_error != null) ...[
+              AvisoDeError(mensaje: _error!),
+              const SizedBox(height: 16),
             ],
-          ),
+            ...widget.campos,
+            const SizedBox(height: 24),
+            FilledButton(
+              onPressed: _guardando ? null : _guardar,
+              child: Text(_guardando ? 'Guardando…' : 'Guardar'),
+            ),
+          ],
         ),
       ),
     );
@@ -99,9 +92,8 @@ Future<void> editarNombreDelUsuario(
   final formKey = GlobalKey<FormState>();
   final ctrl = TextEditingController(text: nombreActual);
 
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
+  return mostrarHojaModal<void>(
+    context,
     builder: (_) => _HojaDeEdicion(
       formKey: formKey,
       titulo: 'Mi nombre',
@@ -144,9 +136,8 @@ Future<void> editarDespensa(BuildContext context, WidgetRef ref) {
     text: datos.despensa.diasMoraConfig.toString(),
   );
 
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
+  return mostrarHojaModal<void>(
+    context,
     builder: (_) => _HojaDeEdicion(
       formKey: formKey,
       titulo: 'Datos de la despensa',
@@ -205,9 +196,8 @@ Future<void> cambiarPassword(BuildContext context, WidgetRef ref) {
   final nuevaCtrl = TextEditingController();
   final repetirCtrl = TextEditingController();
 
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
+  return mostrarHojaModal<void>(
+    context,
     builder: (_) => _HojaDeEdicion(
       formKey: formKey,
       titulo: 'Cambiar contraseña',

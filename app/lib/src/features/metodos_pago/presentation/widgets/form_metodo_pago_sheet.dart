@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/widgets/hoja_modal.dart';
+
 import '../../domain/metodo_pago.dart';
 
 class DatosMetodoPago {
@@ -26,9 +28,8 @@ Future<DatosMetodoPago?> mostrarFormularioMetodoPago(
   BuildContext context, {
   MetodoPago? existente,
 }) {
-  return showModalBottomSheet<DatosMetodoPago>(
-    context: context,
-    isScrollControlled: true,
+  return mostrarHojaModal<DatosMetodoPago>(
+    context,
     builder: (_) => _FormMetodoPago(existente: existente),
   );
 }
@@ -115,118 +116,110 @@ class _FormMetodoPagoState extends State<_FormMetodoPago> {
     final esEdicion = widget.existente != null;
     final esBanco = _tipo == TipoMetodoPago.transferencia;
 
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                esEdicion ? 'Editar método de pago' : 'Nuevo método de pago',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 20),
-              SegmentedButton<TipoMetodoPago>(
-                segments: const [
-                  ButtonSegment(
-                    value: TipoMetodoPago.transferencia,
-                    label: Text('Banco'),
-                    icon: Icon(Icons.account_balance_outlined),
-                  ),
-                  ButtonSegment(
-                    value: TipoMetodoPago.billeteraDigital,
-                    label: Text('Billetera'),
-                    icon: Icon(Icons.account_balance_wallet_outlined),
-                  ),
-                  ButtonSegment(
-                    value: TipoMetodoPago.alias,
-                    label: Text('Alias'),
-                    icon: Icon(Icons.alternate_email),
-                  ),
-                ],
-                selected: {_tipo},
-                onSelectionChanged: (s) => setState(() => _tipo = s.first),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _titularCtrl,
-                textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(
-                  labelText: 'Titular',
-                  helperText: 'A nombre de quién está la cuenta',
-                  prefixIcon: Icon(Icons.person_outline),
+    return ContenidoDeHoja(
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              esEdicion ? 'Editar método de pago' : 'Nuevo método de pago',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 20),
+            SegmentedButton<TipoMetodoPago>(
+              segments: const [
+                ButtonSegment(
+                  value: TipoMetodoPago.transferencia,
+                  label: Text('Banco'),
+                  icon: Icon(Icons.account_balance_outlined),
                 ),
-                validator: (valor) {
-                  final t = valor?.trim() ?? '';
-                  if (t.length < 2) return 'Escribí a nombre de quién está';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _bancoCtrl,
-                textCapitalization: TextCapitalization.words,
-                decoration: InputDecoration(
-                  labelText: esBanco
-                      ? 'Banco o cooperativa'
-                      : 'Billetera (Tigo Money, Personal Pay…)',
-                  prefixIcon: const Icon(Icons.business_outlined),
+                ButtonSegment(
+                  value: TipoMetodoPago.billeteraDigital,
+                  label: Text('Billetera'),
+                  icon: Icon(Icons.account_balance_wallet_outlined),
                 ),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _cuentaCtrl,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Número de cuenta o teléfono',
-                  prefixIcon: Icon(Icons.numbers),
+                ButtonSegment(
+                  value: TipoMetodoPago.alias,
+                  label: Text('Alias'),
+                  icon: Icon(Icons.alternate_email),
                 ),
-                onChanged: (_) => _formKey.currentState?.validate(),
-                validator: _validarDatoDePago,
+              ],
+              selected: {_tipo},
+              onSelectionChanged: (s) => setState(() => _tipo = s.first),
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _titularCtrl,
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(
+                labelText: 'Titular',
+                helperText: 'A nombre de quién está la cuenta',
+                prefixIcon: Icon(Icons.person_outline),
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _aliasCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Alias',
-                  prefixIcon: Icon(Icons.alternate_email),
-                ),
-                onChanged: (_) => _formKey.currentState?.validate(),
+              validator: (valor) {
+                final t = valor?.trim() ?? '';
+                if (t.length < 2) return 'Escribí a nombre de quién está';
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _bancoCtrl,
+              textCapitalization: TextCapitalization.words,
+              decoration: InputDecoration(
+                labelText: esBanco
+                    ? 'Banco o cooperativa'
+                    : 'Billetera (Tigo Money, Personal Pay…)',
+                prefixIcon: const Icon(Icons.business_outlined),
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _notaCtrl,
-                maxLength: 255,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: const InputDecoration(
-                  labelText: 'Aclaración (opcional)',
-                  hintText: 'Avisame cuando transfieras',
-                  prefixIcon: Icon(Icons.notes_outlined),
-                  counterText: '',
-                ),
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _cuentaCtrl,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Número de cuenta o teléfono',
+                prefixIcon: Icon(Icons.numbers),
               ),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                value: _esPrincipal,
-                onChanged: (v) => setState(() => _esPrincipal = v),
-                title: const Text('Usar como principal'),
-                subtitle: const Text(
-                  'Es el que se ofrece primero al compartir',
-                ),
+              onChanged: (_) => _formKey.currentState?.validate(),
+              validator: _validarDatoDePago,
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _aliasCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Alias',
+                prefixIcon: Icon(Icons.alternate_email),
               ),
-              const SizedBox(height: 12),
-              FilledButton(
-                onPressed: _guardar,
-                child: Text(esEdicion ? 'Guardar cambios' : 'Agregar'),
+              onChanged: (_) => _formKey.currentState?.validate(),
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _notaCtrl,
+              maxLength: 255,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(
+                labelText: 'Aclaración (opcional)',
+                hintText: 'Avisame cuando transfieras',
+                prefixIcon: Icon(Icons.notes_outlined),
+                counterText: '',
               ),
-            ],
-          ),
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              value: _esPrincipal,
+              onChanged: (v) => setState(() => _esPrincipal = v),
+              title: const Text('Usar como principal'),
+              subtitle: const Text('Es el que se ofrece primero al compartir'),
+            ),
+            const SizedBox(height: 12),
+            FilledButton(
+              onPressed: _guardar,
+              child: Text(esEdicion ? 'Guardar cambios' : 'Agregar'),
+            ),
+          ],
         ),
       ),
     );

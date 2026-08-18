@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../../core/widgets/hoja_modal.dart';
+
 import '../../../../core/utils/guaranies.dart';
 import '../../../clientes/domain/cliente.dart';
 import '../../domain/movimiento.dart';
@@ -18,9 +20,8 @@ Future<DatosMovimiento?> mostrarFormularioMovimiento(
   required Cliente cliente,
   required TipoMovimiento tipo,
 }) {
-  return showModalBottomSheet<DatosMovimiento>(
-    context: context,
-    isScrollControlled: true,
+  return mostrarHojaModal<DatosMovimiento>(
+    context,
     builder: (_) => _FormMovimiento(cliente: cliente, tipo: tipo),
   );
 }
@@ -87,145 +88,136 @@ class _FormMovimientoState extends State<_FormMovimiento> {
         _saldoResultante > widget.cliente.limiteCredito!;
     final pagoDeMas = _esPago && _saldoResultante < 0;
 
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                _esPago
-                    ? 'Cobrar a ${widget.cliente.nombre}'
-                    : 'Fiar a ${widget.cliente.nombre}',
-                style: tema.textTheme.titleLarge,
+    return ContenidoDeHoja(
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              _esPago
+                  ? 'Cobrar a ${widget.cliente.nombre}'
+                  : 'Fiar a ${widget.cliente.nombre}',
+              style: tema.textTheme.titleLarge,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Debe ahora ${formatearGuaranies(widget.cliente.saldoActual)}',
+              style: tema.textTheme.bodySmall?.copyWith(
+                color: tema.colorScheme.onSurfaceVariant,
               ),
-              const SizedBox(height: 4),
-              Text(
-                'Debe ahora ${formatearGuaranies(widget.cliente.saldoActual)}',
-                style: tema.textTheme.bodySmall?.copyWith(
-                  color: tema.colorScheme.onSurfaceVariant,
-                ),
+            ),
+            const SizedBox(height: 20),
+            TextFormField(
+              controller: _montoCtrl,
+              autofocus: true,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+              decoration: const InputDecoration(
+                labelText: 'Monto',
+                suffixText: 'Gs',
+                prefixIcon: Icon(Icons.payments_outlined),
               ),
-              const SizedBox(height: 20),
-              TextFormField(
-                controller: _montoCtrl,
-                autofocus: true,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                style: const TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                ),
-                decoration: const InputDecoration(
-                  labelText: 'Monto',
-                  suffixText: 'Gs',
-                  prefixIcon: Icon(Icons.payments_outlined),
-                ),
-                onChanged: (_) => setState(() {}),
-                validator: (_) {
-                  final valor = _monto;
-                  if (valor == null || valor <= 0) {
-                    return 'Escribí un monto mayor a cero';
-                  }
-                  if (valor > 100000000) {
-                    return 'Monto demasiado alto. ¿Sobra algún cero?';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                children: [
-                  for (final atajo in _atajos)
-                    ActionChip(
-                      label: Text(formatearGuaranies(atajo)),
-                      onPressed: () {
-                        _montoCtrl.text = atajo.toString();
-                        setState(() {});
-                      },
-                    ),
-                  if (_esPago && widget.cliente.saldoActual > 0)
-                    ActionChip(
-                      avatar: const Icon(Icons.done_all, size: 16),
-                      label: const Text('Todo'),
-                      onPressed: () {
-                        _montoCtrl.text = widget.cliente.saldoActual.toString();
-                        setState(() {});
-                      },
-                    ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _detalleCtrl,
-                textCapitalization: TextCapitalization.sentences,
-                maxLength: 255,
-                decoration: InputDecoration(
-                  labelText: 'Detalle (opcional)',
-                  hintText: _esPago ? 'Abono' : 'Aceite, fideos y azúcar',
-                  prefixIcon: const Icon(Icons.notes_outlined),
-                  counterText: '',
-                ),
-              ),
-              const SizedBox(height: 16),
-              if (monto > 0) ...[
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: tema.colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(8),
+              onChanged: (_) => setState(() {}),
+              validator: (_) {
+                final valor = _monto;
+                if (valor == null || valor <= 0) {
+                  return 'Escribí un monto mayor a cero';
+                }
+                if (valor > 100000000) {
+                  return 'Monto demasiado alto. ¿Sobra algún cero?';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              children: [
+                for (final atajo in _atajos)
+                  ActionChip(
+                    label: Text(formatearGuaranies(atajo)),
+                    onPressed: () {
+                      _montoCtrl.text = atajo.toString();
+                      setState(() {});
+                    },
                   ),
-                  child: Row(
-                    children: [
-                      const Text('Queda debiendo'),
-                      const Spacer(),
-                      Text(
-                        formatearGuaranies(_saldoResultante),
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          color: _saldoResultante > 0
-                              ? tema.colorScheme.error
-                              : tema.colorScheme.tertiary,
-                        ),
-                      ),
-                    ],
+                if (_esPago && widget.cliente.saldoActual > 0)
+                  ActionChip(
+                    avatar: const Icon(Icons.done_all, size: 16),
+                    label: const Text('Todo'),
+                    onPressed: () {
+                      _montoCtrl.text = widget.cliente.saldoActual.toString();
+                      setState(() {});
+                    },
                   ),
-                ),
-                if (excedeLimite) ...[
-                  const SizedBox(height: 8),
-                  _Aviso(
-                    icono: Icons.warning_amber_rounded,
-                    texto:
-                        'Con esto pasa su límite de '
-                        '${formatearGuaranies(widget.cliente.limiteCredito!)}.',
-                  ),
-                ],
-                if (pagoDeMas) ...[
-                  const SizedBox(height: 8),
-                  _Aviso(
-                    icono: Icons.info_outline,
-                    texto:
-                        'Paga más de lo que debe. Quedan '
-                        '${formatearGuaranies(-_saldoResultante)} a su favor.',
-                  ),
-                ],
-                const SizedBox(height: 16),
               ],
-              FilledButton.icon(
-                onPressed: _confirmar,
-                icon: Icon(_esPago ? Icons.payments : Icons.add_shopping_cart),
-                label: Text(_esPago ? 'Registrar pago' : 'Registrar fiado'),
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _detalleCtrl,
+              textCapitalization: TextCapitalization.sentences,
+              maxLength: 255,
+              decoration: InputDecoration(
+                labelText: 'Detalle (opcional)',
+                hintText: _esPago ? 'Abono' : 'Aceite, fideos y azúcar',
+                prefixIcon: const Icon(Icons.notes_outlined),
+                counterText: '',
               ),
+            ),
+            const SizedBox(height: 16),
+            if (monto > 0) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: tema.colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    const Text('Queda debiendo'),
+                    const Spacer(),
+                    Text(
+                      formatearGuaranies(_saldoResultante),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: _saldoResultante > 0
+                            ? tema.colorScheme.error
+                            : tema.colorScheme.tertiary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (excedeLimite) ...[
+                const SizedBox(height: 8),
+                _Aviso(
+                  icono: Icons.warning_amber_rounded,
+                  texto:
+                      'Con esto pasa su límite de '
+                      '${formatearGuaranies(widget.cliente.limiteCredito!)}.',
+                ),
+              ],
+              if (pagoDeMas) ...[
+                const SizedBox(height: 8),
+                _Aviso(
+                  icono: Icons.info_outline,
+                  texto:
+                      'Paga más de lo que debe. Quedan '
+                      '${formatearGuaranies(-_saldoResultante)} a su favor.',
+                ),
+              ],
+              const SizedBox(height: 16),
             ],
-          ),
+            FilledButton.icon(
+              onPressed: _confirmar,
+              icon: Icon(_esPago ? Icons.payments : Icons.add_shopping_cart),
+              label: Text(_esPago ? 'Registrar pago' : 'Registrar fiado'),
+            ),
+          ],
         ),
       ),
     );
