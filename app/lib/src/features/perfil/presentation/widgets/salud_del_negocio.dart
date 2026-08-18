@@ -240,7 +240,9 @@ class _BarraRecuperacion extends StatelessWidget {
             final marca100 = restricciones.maxWidth * (100 / 120);
 
             return SizedBox(
-              height: 22,
+              // 10 de barra + 12 de separación + el alto del "100%". Con 22
+              // entraba la barra pero la etiqueta quedaba cortada al medio.
+              height: 28,
               child: Stack(
                 children: [
                   Align(

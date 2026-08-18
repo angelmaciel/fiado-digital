@@ -22,7 +22,29 @@ Future<void> mostrarCompartirMetodoPago(
   required String nombreDespensa,
   required int saldo,
 }) async {
-  final metodos = ref.read(metodosPagoControllerProvider).value ?? const [];
+  // Se esperan los métodos en vez de mirar lo que ya haya en memoria.
+  //
+  // Nadie los carga antes de llegar acá: el único que los observa es la
+  // pantalla de "Cómo me pagan". Leyendo el valor actual, la primera vez en
+  // cada sesión la lista estaba vacía sencillamente porque todavía no había
+  // llegado, y al dueño se le decía que no tenía ninguna cuenta cargada
+  // teniéndolas. Esperar cuesta una espera corta; equivocarse ahí manda a
+  // cargar de nuevo algo que ya existe.
+  final List<MetodoPago> metodos;
+  try {
+    metodos = await ref.read(metodosPagoControllerProvider.future);
+  } catch (_) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se pudieron cargar tus métodos de pago.'),
+        ),
+      );
+    }
+    return;
+  }
+
+  if (!context.mounted) return;
 
   if (metodos.isEmpty) {
     await _ofrecerCargarUno(context);
