@@ -4,6 +4,17 @@ Cómo poner Fiado Digital en línea. El objetivo acá es una **demo pública de
 portafolio**: que cualquiera entre por un link y vea la app funcionando, sin
 instalar nada y sin tener que registrarse.
 
+**Desplegado y funcionando:** <https://fiado-digital-web.onrender.com>
+
+| Servicio | URL |
+| --- | --- |
+| Web | `https://fiado-digital-web.onrender.com` |
+| API | `https://fiado-digital-api-ougz.onrender.com` |
+
+El sufijo `-ougz` de la API no es decorativo: el nombre `fiado-digital-api` ya
+estaba tomado por otro proyecto en Render, y los hostnames de `onrender.com`
+son globales y por orden de llegada. Render le agregó el sufijo al nuestro.
+
 La configuración de los servicios vive en [`render.yaml`](../render.yaml), en la
 raíz. Este documento cubre lo que ese archivo **no puede** automatizar: los
 valores que hay que cargar a mano, el orden en que se hacen las cosas, y lo que
@@ -133,8 +144,62 @@ Dos cosas para tener presentes:
   Volver a correr el comando la reconstruye desde cero.
 - **Sin un proveedor de correo configurado nadie puede registrarse**, porque el
   código de verificación se imprimiría en el log del servidor en vez de
-  enviarse. Con `EMAIL_PROVIDER=smtp` funciona, pero Gmail tiene un límite de
-  unos 500 correos por día. Para una demo alcanza y sobra.
+  enviarse. Cómo dejarlo andando está en la sección siguiente.
+
+## El correo: por qué Gmail no sirve acá
+
+Esto costó un rato entenderlo y conviene dejarlo escrito.
+
+**El plan gratuito de Render bloquea el tráfico SMTP saliente** por los puertos
+clásicos: 25, 465 y 587. No importa el proveedor. La configuración de Gmail que
+funciona en desarrollo, en Render falla con:
+
+```
+ERROR [EmailSmtp] No se pudo conectar al servidor SMTP: Connection timeout
+```
+
+El síntoma engaña: **es un timeout, no un rechazo de credenciales**. Si fuera
+un problema de usuario o contraseña, el servidor contestaría rechazando. Acá no
+contesta nadie, porque el paquete nunca sale.
+
+La salida no es cambiar de proveedor SMTP —todos usan los mismos puertos— sino
+usar uno que ofrezca **el puerto 2525**, que sí pasa.
+
+### Configuración que funciona (Brevo)
+
+Brevo da 300 correos por día en el plan gratuito.
+
+1. Crear la cuenta en brevo.com.
+2. **Dar de alta el remitente y verificarlo.** Tiene que ser exactamente la
+   misma dirección que está en `EMAIL_REMITENTE`; si no coincide, Brevo rechaza
+   el envío. La verificación es un clic en un correo que te mandan.
+3. En **Settings → SMTP & API → SMTP**, generar una *SMTP key*. Se muestra una
+   sola vez.
+4. En el servicio de la API, cargar:
+
+```
+SMTP_HOST     = smtp-relay.brevo.com
+SMTP_PORT     = 2525
+SMTP_USER     = xxxxxx@smtp-brevo.com   ← el "Login" del panel, NO tu correo
+SMTP_PASSWORD = la SMTP key
+```
+
+El backend verifica la conexión **al arrancar**, así que la respuesta aparece
+sola en los primeros segundos del log, sin necesidad de mandar nada:
+
+```
+LOG [EmailSmtp] Conexión SMTP verificada
+```
+
+### Una limitación que queda
+
+Enviar *desde* una dirección `@gmail.com` a través de otro proveedor hace que la
+firma DKIM no quede alineada: Brevo no puede firmar en nombre del dominio de
+Google. Los correos salen, pero **tienen más chance de caer en spam**.
+
+Se arregla con un dominio propio verificado en el proveedor. Para una demo de
+portafolio no vale la pena; solo hay que saber que el código puede estar en la
+carpeta de correo no deseado.
 
 ## Qué esperar del plan gratuito
 
@@ -175,3 +240,23 @@ flutter build apk --release \
   --dart-define=API_BASE_URL=https://TU-API.onrender.com/api \
   --dart-define=GOOGLE_WEB_CLIENT_ID=<client-id-web>
 ```
+
+## Las trampas que nos costaron una vuelta cada una
+
+Ninguna fue un error de código. Se listan porque todas se repiten en cualquier
+despliegue parecido:
+
+| # | Síntoma | Causa |
+| --- | --- | --- |
+| 1 | "Blueprint file render.yaml not found on main branch" | El archivo estaba en `develop`. Render lee la rama que le indica el blueprint |
+| 2 | "no such plan free for service type web" | `plan: free` en el sitio estático. Los estáticos no tienen planes; un campo de más rechaza el blueprint entero |
+| 3 | "Exited with status 127 while building" | `NODE_ENV=production` hace que npm resuelva `omit=dev`, y `nest` y `prisma` viven en devDependencies. Se arregla con `npm ci --include=dev` |
+| 4 | La API respondía `{"detail":"Not Found"}` | Estábamos probando contra `fiado-digital-api.onrender.com`, que es de otro proyecto. El nuestro es `-ougz` |
+| 5 | Google devolvía `redirect_uri_mismatch` | El campo de valor tenía adentro el nombre de la variable: `GOOGLE_CALLBACK_URL = https://...` |
+| 6 | Seguía fallando con el valor ya corregido | Un salto de línea invisible al final: la URL terminaba en `%0A`. Los campos de Render son textareas |
+| 7 | La web llamaba a la API equivocada | Los `--dart-define` se hornean en el build. Cambiar la variable no alcanza: hay que redesplegar |
+
+De las siete, **la 3, la 6 y la 7 no dan ningún mensaje que apunte a la causa**.
+La 3 dice "status 127" sin decir qué comando faltó; la 6 muestra una URL que a
+simple vista es idéntica a la registrada; y la 7 no falla en ningún lado — la
+app simplemente le habla al servidor de otra persona.

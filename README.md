@@ -5,6 +5,23 @@
 App multiplataforma (Android, Windows, Web) para que despensas y almacenes de
 barrio en Paraguay digitalicen el registro de ventas a crédito ("fiado").
 
+## Probala
+
+**<https://fiado-digital-web.onrender.com>**
+
+Podés crear tu propia cuenta, o entrar con la de demostración, que ya viene con
+14 clientes y 55 movimientos repartidos en 90 días:
+
+```
+correo:     capturas@fiado.demo
+contraseña: capturas-fiado-2026
+```
+
+Está en el plan gratuito de Render, así que **la primera visita puede tardar
+hasta un minuto** mientras el servicio se despierta. Después va normal.
+
+Las pantallas, una por una: [docs/pruebas.html](docs/pruebas.html).
+
 ## Estructura del monorepo
 
 ```
