@@ -39,6 +39,12 @@ Las capturas se regeneran solas con `cd tools/capturas && npm run capturar`.
 Cada push a `main` o `develop` dispara la CI: type-check y build del backend,
 más formato, análisis, tests y build web de la app.
 
+## Despliegue
+
+Los dos servicios están definidos en [render.yaml](render.yaml) y siguen la rama
+`main`. Los pasos, los valores que hay que cargar a mano y lo que hay que tocar
+en Google Cloud Console están en [docs/despliegue.md](docs/despliegue.md).
+
 ## Estado actual
 
 Sprint 1 (17 ago – 28 ago): HU-01 login con Google, HU-02 CRUD de clientes.
