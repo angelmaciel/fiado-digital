@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../theme/ritmo.dart';
 import '../sincronizacion.dart';
 
 /// Franja que aparece arriba cuando no hay red o quedan cosas por subir.
@@ -68,6 +70,12 @@ class AvisoSinConexion extends ConsumerWidget {
           ),
         ),
       ),
-    );
+    )
+        // Baja desde arriba en vez de aparecer de golpe. La franja empuja el
+        // resto de la pantalla hacia abajo, y ese salto sin aviso hace que el
+        // dedo toque otra cosa de la que apuntaba.
+        .animate()
+        .fadeIn(duration: Ritmo.normal(context))
+        .slideY(begin: -1, end: 0, curve: Curves.easeOut);
   }
 }
