@@ -9,7 +9,9 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/guaranies.dart';
 import '../../auth/application/auth_controller.dart';
 import '../application/clientes_controller.dart';
+import '../application/recordatorio_mora.dart';
 import '../domain/cliente.dart';
+import 'widgets/aviso_mora.dart';
 import 'widgets/form_cliente_sheet.dart';
 import 'widgets/lista_mora.dart';
 
@@ -78,6 +80,10 @@ class _ClientesScreenState extends ConsumerState<ClientesScreen> {
     final clientes = ref.watch(clientesControllerProvider);
     final soloMora = ref.watch(filtroSoloMoraProvider);
 
+    // Basta con observarlo: el provider se encarga de reprogramar el aviso
+    // diario cada vez que cambia la lista de atrasados (HU-09).
+    ref.watch(recordatorioDeMoraProvider);
+
     return Scaffold(
       appBar: AppBar(
         titleSpacing: 8,
@@ -139,26 +145,34 @@ class _ClientesScreenState extends ConsumerState<ClientesScreen> {
                   return const _ListaVacia();
                 }
 
+                // +1 por el aviso de atrasados, que va como primera fila para
+                // que se desplace con la lista en vez de comer alto fijo.
+                final filas = estado.clientes.length + 1;
+
                 return RefreshIndicator(
-                  onRefresh: () async =>
-                      ref.invalidate(clientesControllerProvider),
+                  onRefresh: () async {
+                    ref.invalidate(clientesControllerProvider);
+                    ref.invalidate(moraProvider);
+                  },
                   child: ListView.separated(
                     controller: _scrollCtrl,
                     // Siempre scrollable para que el pull-to-refresh funcione aunque
                     // entren pocos clientes en pantalla.
                     physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.only(bottom: 88),
-                    itemCount:
-                        estado.clientes.length + (estado.cargandoMas ? 1 : 0),
-                    separatorBuilder: (_, _) => const Divider(height: 1),
+                    itemCount: filas + (estado.cargandoMas ? 1 : 0),
+                    separatorBuilder: (_, indice) => indice == 0
+                        ? const SizedBox.shrink()
+                        : const Divider(height: 1),
                     itemBuilder: (context, indice) {
-                      if (indice >= estado.clientes.length) {
+                      if (indice == 0) return const AvisoDeMora();
+                      if (indice >= filas) {
                         return const Padding(
                           padding: EdgeInsets.all(16),
                           child: Center(child: CircularProgressIndicator()),
                         );
                       }
-                      return _FilaCliente(cliente: estado.clientes[indice]);
+                      return _FilaCliente(cliente: estado.clientes[indice - 1]);
                     },
                   ),
                 );

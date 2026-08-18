@@ -12,6 +12,8 @@ import '../../movimientos/presentation/widgets/form_movimiento_sheet.dart';
 import '../../movimientos/presentation/widgets/lista_movimientos.dart';
 import '../application/clientes_controller.dart';
 import '../domain/cliente.dart';
+import '../../perfil/application/perfil_controller.dart';
+import 'widgets/boton_whatsapp.dart';
 import 'widgets/form_cliente_sheet.dart';
 
 /// Detalle de cliente. Por ahora solo datos y saldo: el historial de
@@ -202,6 +204,23 @@ class _Detalle extends ConsumerWidget {
             '${cliente.createdAt.year}',
           ),
         ),
+        if (cliente.saldoActual > 0) ...[
+          const SizedBox(height: 8),
+          BotonWhatsApp(
+            telefono: cliente.telefono,
+            mensaje: mensajeDeCobranza(
+              nombreCliente: cliente.nombre,
+              nombreDespensa:
+                  ref
+                      .watch(perfilControllerProvider)
+                      .value
+                      ?.despensa
+                      .nombreComercial ??
+                  'la despensa',
+              saldo: cliente.saldoActual,
+            ),
+          ),
+        ],
         const SizedBox(height: 24),
         _BotonesDeMovimiento(cliente: cliente),
         const SizedBox(height: 24),
