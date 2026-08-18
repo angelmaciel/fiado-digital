@@ -234,9 +234,23 @@ class _BotonesDeMovimiento extends ConsumerWidget {
     if (datos == null) return;
 
     try {
-      final saldo = await ref
-          .read(movimientosControllerProvider(cliente.id).notifier)
-          .registrar(tipo: tipo, monto: datos.monto, detalle: datos.detalle);
+      var saldo = await _intentarRegistrar(ref, tipo, datos);
+
+      // El backend rechaza los fiados que pasan el límite (HU-08). No es un
+      // error definitivo: se le pregunta al dueño y, si confirma, se reenvía
+      // forzando. El límite sigue significando algo, pero no le traba la venta.
+      if (saldo == null) {
+        if (!context.mounted) return;
+        final confirmado = await _confirmarExcesoDeLimite(
+          context,
+          ref,
+          cliente,
+        );
+        if (confirmado != true) return;
+
+        saldo = await _intentarRegistrar(ref, tipo, datos, forzar: true);
+        if (saldo == null) return;
+      }
 
       mensajero.showSnackBar(
         SnackBar(
@@ -254,6 +268,60 @@ class _BotonesDeMovimiento extends ConsumerWidget {
         SnackBar(content: Text(e.mensaje), backgroundColor: colorError),
       );
     }
+  }
+
+  /// Devuelve el saldo resultante, o null si el backend pidió confirmación por
+  /// exceder el límite de crédito.
+  Future<int?> _intentarRegistrar(
+    WidgetRef ref,
+    TipoMovimiento tipo,
+    DatosMovimiento datos, {
+    bool forzar = false,
+  }) async {
+    try {
+      return await ref
+          .read(movimientosControllerProvider(cliente.id).notifier)
+          .registrar(
+            tipo: tipo,
+            monto: datos.monto,
+            detalle: datos.detalle,
+            forzarLimite: forzar,
+          );
+    } on ApiException catch (e) {
+      if (e.excedeLimiteDeCredito && !forzar) return null;
+      rethrow;
+    }
+  }
+
+  Future<bool?> _confirmarExcesoDeLimite(
+    BuildContext context,
+    WidgetRef ref,
+    Cliente cliente,
+  ) {
+    return showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        icon: Icon(
+          Icons.warning_amber_rounded,
+          color: Theme.of(dialogContext).colorScheme.error,
+        ),
+        title: Text('${cliente.nombre} pasa su límite'),
+        content: Text(
+          'Su límite es de ${formatearGuaranies(cliente.limiteCredito ?? 0)} '
+          'y con este fiado quedaría debiendo más. ¿Le fiás igual?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('No'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Fiar igual'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override

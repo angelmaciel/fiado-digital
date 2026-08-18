@@ -50,6 +50,7 @@ class MovimientosApi {
     String? detalle,
     String? id,
     DateTime? registradoEn,
+    bool forzarLimite = false,
   }) async {
     assert(tipo != TipoMovimiento.ajuste, 'Un ajuste se crea revirtiendo');
 
@@ -62,6 +63,7 @@ class MovimientosApi {
           'monto': monto,
           'detalle': ?detalle,
           'registradoEn': ?registradoEn?.toUtc().toIso8601String(),
+          if (forzarLimite) 'forzarLimite': true,
         },
       );
       return _leerResultado(r.data!);

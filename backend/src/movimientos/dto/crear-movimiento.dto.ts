@@ -1,5 +1,6 @@
 import { Transform, Type } from 'class-transformer';
 import {
+  IsBoolean,
   IsEnum,
   IsInt,
   IsOptional,
@@ -62,4 +63,16 @@ export class CrearMovimientoDto {
   @IsOptional()
   @IsString()
   registradoEn?: string;
+
+  /**
+   * HU-08: fiar aunque el cliente pase su limite de credito.
+   *
+   * El servidor rechaza por defecto, y la app reenvia con esto en true despues
+   * de que el dueno confirma. Un limite que no bloquea nada no sirve; uno que
+   * bloquea sin salida termina con el despensero borrando el limite para
+   * siempre la primera vez que le estorba.
+   */
+  @IsOptional()
+  @IsBoolean()
+  forzarLimite?: boolean;
 }
