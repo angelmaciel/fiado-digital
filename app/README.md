@@ -30,7 +30,8 @@ de la PC en la red local:
 ## Compilar para Android
 
 ```bash
-flutter run -d <emulador-o-dispositivo>   --dart-define=GOOGLE_WEB_CLIENT_ID=TU_CLIENT_ID_WEB.apps.googleusercontent.com
+flutter run -d <emulador-o-dispositivo> \
+  --dart-define=GOOGLE_WEB_CLIENT_ID=TU_CLIENT_ID_WEB.apps.googleusercontent.com
 ```
 
 ### Cliente OAuth de Android
@@ -50,7 +51,9 @@ servidor solo necesita conocer ese.
 Para sacar tu SHA-1:
 
 ```bash
-keytool -J-Duser.language=en -list -v   -keystore ~/.android/debug.keystore   -alias androiddebugkey -storepass android -keypass android
+keytool -J-Duser.language=en -list -v \
+  -keystore ~/.android/debug.keystore \
+  -alias androiddebugkey -storepass android -keypass android
 ```
 
 El `-J-Duser.language=en` no es capricho: la traducción al español de `keytool`
@@ -68,19 +71,19 @@ Gradle no se puede ni descargar:
 PKIX path building failed: unable to find valid certification path
 ```
 
-La solución que no requiere administrador es copiar el almacén de Java a una
-carpeta propia y agregarle el certificado del antivirus:
+La solución que no requiere permisos de administrador es copiar el almacén de
+Java a una carpeta propia y agregarle el certificado del antivirus:
 
 ```powershell
 # 1. Exportar el certificado raíz del antivirus
 $cert = Get-ChildItem Cert:\LocalMachine\Root | Where-Object { $_.Subject -like "*Norton*" }
-Export-Certificate -Cert $cert[0] -FilePath "$env:USERPROFILEntivirus-root.cer" -Type CERT
+Export-Certificate -Cert $cert[0] -FilePath "$env:USERPROFILE\antivirus-root.cer" -Type CERT
 
 # 2. Copiar el almacén de Java y agregarle ese certificado
 $jbr = "C:\Program Files\Android\Android Studio\jbr"
 Copy-Item "$jbr\lib\security\cacerts" "$env:USERPROFILE\cacerts-con-antivirus"
-& "$jbrin\keytool.exe" -importcert -noprompt -trustcacerts -alias antivirus `
-  -file "$env:USERPROFILEntivirus-root.cer" `
+& "$jbr\bin\keytool.exe" -importcert -noprompt -trustcacerts -alias antivirus `
+  -file "$env:USERPROFILE\antivirus-root.cer" `
   -keystore "$env:USERPROFILE\cacerts-con-antivirus" -storepass changeit
 ```
 
