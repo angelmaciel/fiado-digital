@@ -485,7 +485,13 @@
           </ol>
         </li>
         <li><a href="#recorrido"><span class="n">4</span><span>Recorrido por la app</span></a></li>
-        <li><a href="#dispositivo"><span class="n">5</span><span>Pruebas en dispositivo real</span></a></li>
+        <li>
+          <a href="#dispositivo"><span class="n">5</span><span>Pruebas en dispositivo real</span></a>
+          <ol>
+            <li><a href="#iphone">iPhone</a></li>
+            <li><a href="#windows">Windows</a></li>
+          </ol>
+        </li>
         <li><a href="#android"><span class="n">6</span><span>Compilación en Android</span></a></li>
         <li><a href="#capturas"><span class="n">7</span><span>Cómo se sacan las capturas</span></a></li>
         <li><a href="#defectos"><span class="n">8</span><span>Defectos encontrados</span></a></li>
@@ -979,6 +985,8 @@ tasa de recuperación: 56%   (mes pasado 63%)</code></pre>
       <section id="dispositivo">
         <h2><span class="n">Sección 5</span>Pruebas en dispositivo real</h2>
 
+        <h3 id="iphone">5.1 iPhone — la app Web servida en la red local</h3>
+
         <p>
           Se probó la versión Web desde un iPhone conectado a la red local,
           sirviendo la app desde la PC de desarrollo.
@@ -1007,6 +1015,52 @@ flutter run -d web-server --web-port=5000 --web-hostname=0.0.0.0 \
           <li><strong>El login con Google falla</strong>, porque ese origen no está autorizado en Google Cloud Console. Se prueba con correo y contraseña.</li>
           <li><strong>La sesión no sobrevive a recargar la página.</strong> El almacenamiento seguro del navegador necesita <code>crypto.subtle</code>, que solo existe en contexto seguro (HTTPS o localhost). La app lo detecta y cae a guardar la sesión en memoria.</li>
         </ul>
+
+        <h3 id="windows">5.2 Windows — login con Google por navegador</h3>
+
+        <p>
+          Windows es la única plataforma con un flujo de login distinto:
+          <code>google_sign_in</code> no la soporta, así que la app abre el
+          navegador contra el backend y espera los tokens en un servidor local
+          en el puerto 8765. Es el camino que más partes tiene y el último que
+          quedaba sin verificar.
+        </p>
+
+        <div class="tabla">
+          <table>
+            <thead><tr><th>Paso</th><th>Resultado</th></tr></thead>
+            <tbody>
+              <tr><td>Compilación de escritorio</td><td><span class="marca ok">OK</span> 49 s con Visual Studio 2026</td></tr>
+              <tr><td><code>GET /api/auth/google</code></td><td><span class="marca ok">302</span> hacia Google</td></tr>
+              <tr><td><code>redirect_uri</code> que emite el backend</td><td><code>http://localhost:3000/api/auth/google/callback</code></td></tr>
+              <tr><td>¿Google acepta ese <code>redirect_uri</code>?</td><td><span class="marca ok">Sí</span> devuelve la pantalla de login, no <code>redirect_uri_mismatch</code></td></tr>
+              <tr><td>Vuelta al puerto 8765 con los tokens</td><td><span class="marca ok">OK</span> la app entra sola, sin copiar nada</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>
+          Con esto quedan verificados <strong>los tres caminos de
+          autenticación</strong>: correo y contraseña, Google en Web, y Google
+          en Windows.
+        </p>
+
+        <div class="nota roja">
+          <span class="rotulo">Un antivirus puede impedir que el ejecutable se genere</span>
+          <p>
+            En la máquina de desarrollo, Norton 360 bloquea la creación de
+            <code>fiado_digital.exe</code>. El síntoma engaña: el compilador
+            dice <code>LNK1104: no se puede abrir el archivo</code> sobre una
+            ruta que <em>no existe</em>, y escribir ahí a mano da “acceso
+            denegado” aun con la app cerrada y en una carpeta recién creada.
+          </p>
+          <p>
+            No es un problema del proyecto ni del código. Se resuelve
+            agregando la carpeta del repositorio a las exclusiones del
+            antivirus. Es el mismo antivirus que obliga al rodeo del almacén de
+            certificados de Java descrito en <code>app/README.md</code>.
+          </p>
+        </div>
       </section>
 
       <!-- ============================================================ -->
