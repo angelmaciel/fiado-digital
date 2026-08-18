@@ -31,6 +31,8 @@ propia rama `feature/HU-XX-...`.
 
 El detalle, con los comandos, está en [docs/flujo-git.md](docs/flujo-git.md).
 
+Qué está verificado y cómo: [docs/pruebas.md](docs/pruebas.md).
+
 Cada push a `main` o `develop` dispara la CI: type-check y build del backend,
 más formato, análisis, tests y build web de la app.
 
