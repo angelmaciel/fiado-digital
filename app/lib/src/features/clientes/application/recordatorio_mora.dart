@@ -33,8 +33,15 @@ class RecordatorioDeMora {
   final _plugin = FlutterLocalNotificationsPlugin();
   bool _listo = false;
 
-  /// Solo Android. El paquete no soporta Windows ni Web, y en esas plataformas
-  /// el aviso dentro de la app es suficiente.
+  /// Por ahora solo Android, que es donde tiene sentido: el recordatorio existe
+  /// para que el dueño lo vea en el celular a media mañana, no frente a la PC.
+  ///
+  /// Web queda afuera porque no hay dónde programarlo sin un servicio de push.
+  /// Windows, en cambio, **sí lo soporta** desde
+  /// `flutter_local_notifications_windows`, que expone el mismo `zonedSchedule`.
+  /// Está deshabilitado a propósito y no por imposibilidad: habilitarlo pide
+  /// registrar la app en el sistema con un identificador propio, y no vale la
+  /// pena hasta que alguien la use de verdad en escritorio.
   static bool get soportado =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
