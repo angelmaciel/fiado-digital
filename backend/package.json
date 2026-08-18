@@ -21,7 +21,8 @@
     "seed:demo": "node prisma/seed-demo.js",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:cov": "jest --coverage"
+    "test:cov": "jest --coverage",
+    "demo:cuenta": "node prisma/cuenta-demo.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.6",
