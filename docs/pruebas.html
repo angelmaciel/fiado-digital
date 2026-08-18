@@ -491,6 +491,7 @@
           <ol>
             <li><a href="#iphone">iPhone</a></li>
             <li><a href="#windows">Windows</a></li>
+            <li><a href="#offline">Base local cifrada</a></li>
           </ol>
         </li>
         <li><a href="#produccion"><span class="n">6</span><span>Verificación en producción</span></a></li>
@@ -604,7 +605,7 @@ cd app     &amp;&amp; flutter test   # 29 pruebas</code></pre>
           <li><strong>Restricciones de unicidad.</strong> Viven en PostgreSQL, no en el código.</li>
           <li><strong>Concurrencia real.</strong> Requiere una base de verdad; se verificó a mano y está documentado abajo.</li>
           <li><strong>Interfaz de usuario.</strong> No hay pruebas de widgets ni de integración. El recorrido con capturas (<a href="#recorrido">sección 4</a>) es lo más cerca que hay, y encontró un defecto.</li>
-          <li><strong>Modo sin conexión y notificaciones.</strong> Solo existen en Android y Windows.</li>
+          <li><strong>Modo sin conexión y notificaciones.</strong> Solo existen en Android y Windows. El cifrado de la base local se verificó a mano (<a href="#offline">sección 5.3</a>); las notificaciones siguen sin probarse.</li>
         </ul>
       </section>
 
@@ -1059,12 +1060,79 @@ flutter run -d web-server --web-port=5000 --web-hostname=0.0.0.0 \
             denegado” aun con la app cerrada y en una carpeta recién creada.
           </p>
           <p>
-            No es un problema del proyecto ni del código. Se resuelve
-            agregando la carpeta del repositorio a las exclusiones del
-            antivirus. Es el mismo antivirus que obliga al rodeo del almacén de
-            certificados de Java descrito en <code>app/README.md</code>.
+            No es un problema del proyecto ni del código, y —contra lo que
+            parece— <strong>excluir la carpeta del antivirus no lo arregla</strong>.
+            El bloqueo resultó ser por ruta y nombre exactos; cómo se acotó y
+            cómo se resolvió está en la <a href="#offline">sección 5.3</a>.
           </p>
         </div>
+      
+        <h3 id="offline">5.3 Windows — la base local cifrada</h3>
+
+        <p>
+          El modo sin conexión guarda los clientes y los movimientos en una base
+          SQLite <strong>cifrada con SQLCipher</strong> dentro del dispositivo.
+          Hasta acá era código que compilaba y pasaba el análisis, pero que
+          <strong>nunca se había ejecutado</strong>: no había forma de afirmar
+          que el cifrado estuviera activo de verdad.
+        </p>
+
+        <p>
+          Se compiló la app de escritorio, se entró con la cuenta de
+          demostración y se leyó el archivo que quedó en disco.
+        </p>
+
+        <div class="tabla">
+          <table>
+            <thead><tr><th>Verificación</th><th>Resultado</th></tr></thead>
+            <tbody>
+              <tr><td>La base se crea al entrar</td><td><span class="marca ok">Sí</span> — 20.480 bytes en <code>%APPDATA%\com.fiadodigital\</code></td></tr>
+              <tr><td>Primeros bytes del archivo</td><td><code>92 d7 4c 09 8d 7b 68 39 …</code></td></tr>
+              <tr><td>¿Empieza con <code>SQLite format 3</code>?</td><td><span class="marca ok">No</span> — una base sin cifrar siempre empieza así</td></tr>
+              <tr><td>Nombres de clientes legibles en el archivo</td><td><span class="marca ok">Ninguno</span></td></tr>
+              <tr><td>Nombres de tablas legibles</td><td><span class="marca ok">Ninguno</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>
+          Que no aparezca ni el nombre de las tablas es lo que cierra el caso: si
+          el binario empaquetado no fuera el de SQLCipher, el esquema se leería
+          en claro aunque los datos no.
+        </p>
+
+        <div class="nota">
+          <span class="rotulo">Qué queda sin probar del modo sin conexión</span>
+          <p>
+            Esto verifica que la base <em>existe, está cifrada y la app la usa</em>.
+            No verifica el circuito completo: anotar un fiado sin internet, que
+            quede en la cola, y que se suba solo al volver la señal. Esa parte
+            necesita cortar la red con la app abierta y mirarla.
+          </p>
+        </div>
+
+        <div class="nota roja">
+          <span class="rotulo">Un antivirus puede bloquear una ruta, no solo un archivo</span>
+          <p>
+            El ejecutable de depuración no se podía generar: el compilador moría
+            con <code>LNK1104</code> sobre una ruta que no existía. Excluir la
+            carpeta del antivirus no cambió nada.
+          </p>
+          <p>
+            La prueba que lo aclaró fue escribir archivos a mano: en esa misma
+            carpeta, <code>otro.exe</code> se creaba sin problema y
+            <code>fiado_digital.exe</code> daba “acceso denegado”; y ese mismo
+            nombre se escribía bien en cualquier otra carpeta. O sea, el bloqueo
+            era por <strong>ruta y nombre exactos</strong> — el rastro de una
+            cuarentena vieja, que una exclusión posterior no deshace.
+          </p>
+          <p>
+            La salida fue compilar en modo <em>release</em>, que escribe en
+            <code>Release\</code> en vez de <code>Debug\</code>. Otra ruta, sin
+            bloqueo.
+          </p>
+        </div>
+
       </section>
 
 
