@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../auth/application/auth_controller.dart';
 import '../data/clientes_api.dart';
 import '../domain/cliente.dart';
+import '../domain/cliente_en_mora.dart';
 
 /// Texto del buscador. Vive aparte del listado para que al tipear se dispare
 /// una recarga sin que el controlador tenga que manejar el estado del input.
@@ -162,6 +163,35 @@ final clientesControllerProvider =
     AsyncNotifierProvider<ClientesController, ClientesState>(
       ClientesController.new,
     );
+
+/// HU-06: quienes deben y hace tiempo que no pagan.
+///
+/// Se recalcula al cambiar de despensa, igual que el resto. Los movimientos lo
+/// invalidan cuando registran un pago: cobrarle a alguien lo saca de la lista.
+final moraProvider = FutureProvider<ListaMora>((ref) {
+  final despensaId = ref.watch(
+    authControllerProvider.select((estado) => estado.usuario?.despensaId),
+  );
+
+  if (despensaId == null) {
+    return const ListaMora(datos: [], diasMoraConfig: 30, deudaEnMora: 0);
+  }
+
+  return ref.watch(clientesApiProvider).listarEnMora();
+});
+
+/// Filtro activo del listado. Vive aparte para que cambiarlo no reconstruya
+/// los datos, solo lo que se muestra.
+class FiltroClientes extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void mostrarSoloMora(bool valor) => state = valor;
+}
+
+final filtroSoloMoraProvider = NotifierProvider<FiltroClientes, bool>(
+  FiltroClientes.new,
+);
 
 /// Detalle de un cliente puntual, siempre fresco desde el backend.
 final clienteProvider = FutureProvider.family<Cliente, String>((ref, id) {

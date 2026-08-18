@@ -10,6 +10,7 @@ import '../../auth/application/auth_controller.dart';
 import '../application/clientes_controller.dart';
 import '../domain/cliente.dart';
 import 'widgets/form_cliente_sheet.dart';
+import 'widgets/lista_mora.dart';
 
 /// HU-02 — listado de clientes con buscador.
 class ClientesScreen extends ConsumerStatefulWidget {
@@ -74,6 +75,7 @@ class _ClientesScreenState extends ConsumerState<ClientesScreen> {
   @override
   Widget build(BuildContext context) {
     final clientes = ref.watch(clientesControllerProvider);
+    final soloMora = ref.watch(filtroSoloMoraProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -88,60 +90,78 @@ class _ClientesScreenState extends ConsumerState<ClientesScreen> {
         ),
         actions: const [_NombreDelDueno(), _BotonCerrarSesion()],
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(64),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: TextField(
-              decoration: const InputDecoration(
-                hintText: 'Buscar por nombre o teléfono',
-                prefixIcon: Icon(Icons.search),
-                isDense: true,
+          preferredSize: const Size.fromHeight(112),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: TextField(
+                  enabled: !soloMora,
+                  decoration: InputDecoration(
+                    hintText: soloMora
+                        ? 'El buscador no aplica en la lista de atrasados'
+                        : 'Buscar por nombre o teléfono',
+                    prefixIcon: const Icon(Icons.search),
+                    isDense: true,
+                  ),
+                  onChanged: (texto) => ref
+                      .read(busquedaClientesProvider.notifier)
+                      .actualizar(texto),
+                ),
               ),
-              onChanged: (texto) =>
-                  ref.read(busquedaClientesProvider.notifier).actualizar(texto),
-            ),
+              const _FiltrosDeLista(),
+              const SizedBox(height: 8),
+            ],
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _crearCliente,
-        icon: const Icon(Icons.person_add_alt_1),
-        label: const Text('Nuevo'),
-      ),
-      body: clientes.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => _EstadoDeError(
-          mensaje: error is ApiException ? error.mensaje : error.toString(),
-          alReintentar: () => ref.invalidate(clientesControllerProvider),
-        ),
-        data: (estado) {
-          if (estado.clientes.isEmpty) {
-            return const _ListaVacia();
-          }
-
-          return RefreshIndicator(
-            onRefresh: () async => ref.invalidate(clientesControllerProvider),
-            child: ListView.separated(
-              controller: _scrollCtrl,
-              // Siempre scrollable para que el pull-to-refresh funcione aunque
-              // entren pocos clientes en pantalla.
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.only(bottom: 88),
-              itemCount: estado.clientes.length + (estado.cargandoMas ? 1 : 0),
-              separatorBuilder: (_, _) => const Divider(height: 1),
-              itemBuilder: (context, indice) {
-                if (indice >= estado.clientes.length) {
-                  return const Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Center(child: CircularProgressIndicator()),
-                  );
+      floatingActionButton: soloMora
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: _crearCliente,
+              icon: const Icon(Icons.person_add_alt_1),
+              label: const Text('Nuevo'),
+            ),
+      body: soloMora
+          ? const ListaMoraView()
+          : clientes.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, _) => _EstadoDeError(
+                mensaje: error is ApiException
+                    ? error.mensaje
+                    : error.toString(),
+                alReintentar: () => ref.invalidate(clientesControllerProvider),
+              ),
+              data: (estado) {
+                if (estado.clientes.isEmpty) {
+                  return const _ListaVacia();
                 }
-                return _FilaCliente(cliente: estado.clientes[indice]);
+
+                return RefreshIndicator(
+                  onRefresh: () async =>
+                      ref.invalidate(clientesControllerProvider),
+                  child: ListView.separated(
+                    controller: _scrollCtrl,
+                    // Siempre scrollable para que el pull-to-refresh funcione aunque
+                    // entren pocos clientes en pantalla.
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.only(bottom: 88),
+                    itemCount:
+                        estado.clientes.length + (estado.cargandoMas ? 1 : 0),
+                    separatorBuilder: (_, _) => const Divider(height: 1),
+                    itemBuilder: (context, indice) {
+                      if (indice >= estado.clientes.length) {
+                        return const Padding(
+                          padding: EdgeInsets.all(16),
+                          child: Center(child: CircularProgressIndicator()),
+                        );
+                      }
+                      return _FilaCliente(cliente: estado.clientes[indice]);
+                    },
+                  ),
+                );
               },
             ),
-          );
-        },
-      ),
     );
   }
 }
@@ -185,6 +205,50 @@ class _BotonCerrarSesion extends ConsumerWidget {
       tooltip: 'Cerrar sesión',
       icon: Icon(Icons.logout, color: color),
       onPressed: () => ref.read(authControllerProvider.notifier).cerrarSesion(),
+    );
+  }
+}
+
+/// Alterna entre todos los clientes y solo los atrasados. El contador sale de
+/// la misma consulta que alimenta la lista, así que no cuesta una request más.
+class _FiltrosDeLista extends ConsumerWidget {
+  const _FiltrosDeLista();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final soloMora = ref.watch(filtroSoloMoraProvider);
+    final enMora = ref.watch(moraProvider).value?.datos.length;
+
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Row(
+          children: [
+            ChoiceChip(
+              label: const Text('Todos'),
+              selected: !soloMora,
+              onSelected: (_) => ref
+                  .read(filtroSoloMoraProvider.notifier)
+                  .mostrarSoloMora(false),
+            ),
+            const SizedBox(width: 8),
+            ChoiceChip(
+              avatar: Icon(
+                Icons.schedule,
+                size: 16,
+                color: soloMora ? null : Theme.of(context).colorScheme.error,
+              ),
+              label: Text(enMora == null ? 'Atrasados' : 'Atrasados ($enMora)'),
+              selected: soloMora,
+              onSelected: (_) => ref
+                  .read(filtroSoloMoraProvider.notifier)
+                  .mostrarSoloMora(true),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

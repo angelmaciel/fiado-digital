@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/network/dio_provider.dart';
 import '../domain/cliente.dart';
+import '../domain/cliente_en_mora.dart';
 
 class ClientesApi {
   ClientesApi(this._dio);
@@ -26,6 +27,17 @@ class ClientesApi {
         },
       );
       return PaginaClientes.fromJson(respuesta.data!);
+    } on DioException catch (e) {
+      throw ApiException.desdeDio(e);
+    }
+  }
+
+  /// HU-06: quienes deben y hace tiempo que no pagan, del mas atrasado al
+  /// menos. El umbral lo define la despensa, no la app.
+  Future<ListaMora> listarEnMora() async {
+    try {
+      final r = await _dio.get<Map<String, dynamic>>('/clientes/en-mora');
+      return ListaMora.fromJson(r.data!);
     } on DioException catch (e) {
       throw ApiException.desdeDio(e);
     }
