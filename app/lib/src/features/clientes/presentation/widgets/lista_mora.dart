@@ -5,8 +5,10 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/utils/guaranies.dart';
+import '../../../perfil/application/perfil_controller.dart';
 import '../../application/clientes_controller.dart';
 import '../../domain/cliente_en_mora.dart';
+import 'boton_whatsapp.dart';
 
 /// HU-06 — quiénes deben y hace tiempo que no pagan, del más atrasado al menos.
 class ListaMoraView extends ConsumerWidget {
@@ -86,7 +88,7 @@ class _Encabezado extends StatelessWidget {
   }
 }
 
-class _FilaMora extends StatelessWidget {
+class _FilaMora extends ConsumerWidget {
   const _FilaMora({required this.cliente});
 
   final ClienteEnMora cliente;
@@ -103,9 +105,15 @@ class _FilaMora extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final tema = Theme.of(context);
     final color = _colorPorAntiguedad(context);
+
+    // El nombre de la despensa va en el mensaje: el cliente tiene que saber
+    // quién le escribe antes de leer que debe plata.
+    final nombreDespensa =
+        ref.watch(perfilControllerProvider).value?.despensa.nombreComercial ??
+        'la despensa';
 
     return ListTile(
       leading: CircleAvatar(
@@ -126,12 +134,27 @@ class _FilaMora extends StatelessWidget {
             : 'Último pago hace ${cliente.diasSinPagar} días',
         style: tema.textTheme.bodySmall?.copyWith(color: color),
       ),
-      trailing: Text(
-        formatearGuaranies(cliente.saldoActual),
-        style: TextStyle(
-          fontWeight: FontWeight.bold,
-          color: tema.colorScheme.error,
-        ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            formatearGuaranies(cliente.saldoActual),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: tema.colorScheme.error,
+            ),
+          ),
+          BotonWhatsApp(
+            compacto: true,
+            telefono: cliente.telefono,
+            mensaje: mensajeDeCobranza(
+              nombreCliente: cliente.nombre,
+              nombreDespensa: nombreDespensa,
+              saldo: cliente.saldoActual,
+              diasSinPagar: cliente.diasSinPagar,
+            ),
+          ),
+        ],
       ),
       onTap: () => context.go(Rutas.detalleCliente(cliente.id)),
     );
