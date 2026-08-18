@@ -133,7 +133,10 @@ services:
   - type: web
     name: fiado-digital-web
     runtime: static
-    plan: free
+    # Sin `plan` a propósito: los sitios estáticos no tienen planes, y ponerle
+    # `free` —que sí es válido para el servicio de la API— hace que Render
+    # rechace el blueprint entero con "no such plan free for service type web".
+    # Tampoco lleva `region` ni `healthCheckPath` por lo mismo.
     branch: main
     rootDir: app
 
