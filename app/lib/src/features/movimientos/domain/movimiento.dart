@@ -10,6 +10,7 @@ class Movimiento {
     required this.revertido,
     this.detalle,
     this.movimientoReversaDe,
+    this.sincronizado = true,
   });
 
   final String id;
@@ -29,6 +30,10 @@ class Movimiento {
 
   /// Este movimiento ya fue corregido por un ajuste posterior.
   final bool revertido;
+
+  /// False mientras espera subir al servidor (HU-07). Un movimiento sin subir
+  /// ya cuenta para el saldo: para el despensero la venta ya ocurrió.
+  final bool sincronizado;
 
   bool get esAjuste => tipo == TipoMovimiento.ajuste;
 

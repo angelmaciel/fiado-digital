@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/local/widgets/aviso_sin_conexion.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
@@ -90,11 +91,12 @@ class _ClientesScreenState extends ConsumerState<ClientesScreen> {
         ),
         actions: const [_NombreDelDueno(), _BotonCerrarSesion()],
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(112),
+          preferredSize: const Size.fromHeight(152),
           child: Column(
             children: [
+              const AvisoSinConexion(),
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                 child: TextField(
                   enabled: !soloMora,
                   decoration: InputDecoration(

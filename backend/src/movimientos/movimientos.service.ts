@@ -4,7 +4,12 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { TipoMovimiento, type Cliente, type Movimiento } from '@prisma/client';
+import {
+  Prisma,
+  TipoMovimiento,
+  type Cliente,
+  type Movimiento,
+} from '@prisma/client';
 import { PrismaService } from '../common/prisma/prisma.service';
 import {
   CrearMovimientoDto,
@@ -71,26 +76,74 @@ export class MovimientosService {
       throw new NotFoundException('Cliente no encontrado');
     }
 
+    // Idempotencia (HU-07): si la app ya habia mandado este movimiento y no
+    // llego a recibir la respuesta, reintentar no debe volver a cobrarlo.
+    if (dto.id) {
+      const yaRegistrado = await this.prisma.movimiento.findUnique({
+        where: { id: dto.id },
+      });
+
+      if (yaRegistrado) {
+        if (yaRegistrado.clienteId !== clienteId) {
+          throw new ConflictException(
+            'Ese identificador ya se uso para un movimiento de otro cliente.',
+          );
+        }
+
+        this.logger.log(`Movimiento ${dto.id} ya estaba registrado; no se repite`);
+        return { movimiento: yaRegistrado, cliente };
+      }
+    }
+
     // Forma de array: las dos sentencias viajan juntas en una sola
     // transacción, sin round-trips intermedios. `increment` es atómico en la
     // base, así que dos cobros simultáneos no se pisan.
-    const [movimiento, actualizado] = await this.prisma.$transaction([
-      this.prisma.movimiento.create({
-        data: {
-          clienteId,
-          usuarioId,
-          tipo,
-          monto: dto.monto,
-          detalle: dto.detalle || null,
-        },
-      }),
-      this.prisma.cliente.update({
-        where: { id: clienteId },
-        data: {
-          saldoActual: { increment: this.efectoSobreSaldo(tipo, dto.monto) },
-        },
-      }),
-    ]);
+    let movimiento: Movimiento;
+    let actualizado: Cliente;
+
+    try {
+      [movimiento, actualizado] = await this.prisma.$transaction([
+        this.prisma.movimiento.create({
+          data: {
+            ...(dto.id && { id: dto.id }),
+            clienteId,
+            usuarioId,
+            tipo,
+            monto: dto.monto,
+            detalle: dto.detalle || null,
+            // Un fiado anotado sin conexion conserva la fecha en que ocurrio.
+            ...(dto.registradoEn && { createdAt: new Date(dto.registradoEn) }),
+          },
+        }),
+        this.prisma.cliente.update({
+          where: { id: clienteId },
+          data: {
+            saldoActual: { increment: this.efectoSobreSaldo(tipo, dto.monto) },
+          },
+        }),
+      ]);
+    } catch (error) {
+      // Dos reintentos en paralelo con el mismo id: el segundo choca contra la
+      // clave primaria. La comprobacion de arriba no alcanza para eso, y este
+      // es el unico punto donde la base garantiza que no se duplique.
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002' &&
+        dto.id
+      ) {
+        const existente = await this.prisma.movimiento.findUnique({
+          where: { id: dto.id },
+        });
+        if (existente) {
+          this.logger.warn(`Reintento simultaneo del movimiento ${dto.id}`);
+          const alDia = await this.prisma.cliente.findUniqueOrThrow({
+            where: { id: clienteId },
+          });
+          return { movimiento: existente, cliente: alDia };
+        }
+      }
+      throw error;
+    }
 
     this.logger.log(
       `${tipo} de ${dto.monto} Gs a ${cliente.nombre}; saldo ${cliente.saldoActual} -> ${actualizado.saldoActual}`,

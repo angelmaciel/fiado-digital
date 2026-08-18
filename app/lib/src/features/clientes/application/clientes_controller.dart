@@ -2,6 +2,11 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:drift/drift.dart' show Value;
+
+import '../../../core/local/base_local.dart';
+import '../../../core/local/base_local_provider.dart';
+import '../../../core/network/api_exception.dart';
 import '../../auth/application/auth_controller.dart';
 import '../data/clientes_api.dart';
 import '../domain/cliente.dart';
@@ -39,6 +44,8 @@ class ClientesState {
     required this.totalPaginas,
     required this.total,
     this.cargandoMas = false,
+    this.desdeCache = false,
+    this.guardadoEn,
   });
 
   final List<Cliente> clientes;
@@ -46,6 +53,13 @@ class ClientesState {
   final int totalPaginas;
   final int total;
   final bool cargandoMas;
+
+  /// Estos datos salieron de la copia local porque no se pudo hablar con el
+  /// servidor (HU-07).
+  final bool desdeCache;
+
+  /// Cuándo se guardó esa copia, para poder decir qué tan vieja es.
+  final DateTime? guardadoEn;
 
   bool get hayMas => pagina < totalPaginas;
 }
@@ -73,15 +87,85 @@ class ClientesController extends AsyncNotifier<ClientesState> {
     }
 
     final busqueda = ref.watch(busquedaClientesProvider);
-    final pagina = await ref
-        .read(clientesApiProvider)
-        .listar(buscar: busqueda, pagina: 1, limite: _limitePorPagina);
+    final base = ref.watch(baseLocalSiEstaListaProvider);
 
-    return ClientesState(
-      clientes: pagina.datos,
-      pagina: pagina.pagina,
-      totalPaginas: pagina.totalPaginas,
-      total: pagina.total,
+    try {
+      final pagina = await ref
+          .read(clientesApiProvider)
+          .listar(buscar: busqueda, pagina: 1, limite: _limitePorPagina);
+
+      // Solo se guarda la lista completa: una búsqueda parcial dejaría la copia
+      // local con la mitad de los clientes y el modo sin conexión mostraría
+      // menos gente de la que hay.
+      if (base != null && busqueda.trim().isEmpty && pagina.pagina == 1) {
+        await base.guardarClientes(despensaId, [
+          for (final c in pagina.datos)
+            ClientesLocalesCompanion.insert(
+              id: c.id,
+              despensaId: despensaId,
+              nombre: c.nombre,
+              telefono: Value(c.telefono),
+              limiteCredito: Value(c.limiteCredito),
+              saldoActual: c.saldoActual,
+              createdAt: c.createdAt,
+              actualizadoEn: DateTime.now(),
+            ),
+        ]);
+      }
+
+      return ClientesState(
+        clientes: pagina.datos,
+        pagina: pagina.pagina,
+        totalPaginas: pagina.totalPaginas,
+        total: pagina.total,
+      );
+    } on ApiException catch (e) {
+      // Si el servidor contestó (aunque sea un error), no se disimula con datos
+      // viejos: solo se cae a la copia local cuando de verdad no hubo red.
+      if (!e.esFallaDeRed || base == null) rethrow;
+
+      final locales = await base.leerClientes(despensaId);
+      if (locales.isEmpty) rethrow;
+
+      final filtrados = _filtrarLocalmente(locales, busqueda);
+
+      return ClientesState(
+        clientes: [for (final c in filtrados) _aCliente(c)],
+        pagina: 1,
+        totalPaginas: 1,
+        total: filtrados.length,
+        desdeCache: true,
+        guardadoEn: locales.first.actualizadoEn,
+      );
+    }
+  }
+
+  /// Sin conexión el buscador filtra sobre lo guardado. Se replica el criterio
+  /// del backend: nombre o teléfono, sin distinguir mayúsculas.
+  List<ClienteLocal> _filtrarLocalmente(
+    List<ClienteLocal> clientes,
+    String busqueda,
+  ) {
+    final texto = busqueda.trim().toLowerCase();
+    if (texto.isEmpty) return clientes;
+
+    return clientes
+        .where(
+          (c) =>
+              c.nombre.toLowerCase().contains(texto) ||
+              (c.telefono?.contains(texto) ?? false),
+        )
+        .toList();
+  }
+
+  Cliente _aCliente(ClienteLocal local) {
+    return Cliente(
+      id: local.id,
+      nombre: local.nombre,
+      saldoActual: local.saldoActual,
+      createdAt: local.createdAt,
+      telefono: local.telefono,
+      limiteCredito: local.limiteCredito,
     );
   }
 

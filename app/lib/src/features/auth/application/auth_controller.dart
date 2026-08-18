@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/app_config.dart';
 import '../../../core/network/api_exception.dart';
+import '../../../core/local/base_local_provider.dart';
 import '../../../core/network/eventos_sesion.dart';
 import '../../../core/storage/token_storage.dart';
 import '../data/auth_api.dart';
@@ -326,6 +327,11 @@ class AuthController extends Notifier<AuthState> {
 
   Future<void> _limpiarSesionLocal() async {
     await _storage.limpiar();
+
+    // Los clientes y saldos guardados en el dispositivo no deben quedar
+    // legibles para quien entre después con otra cuenta.
+    await ref.read(baseLocalSiEstaListaProvider)?.vaciar();
+
     state = const AuthState(estado: EstadoSesion.sinSesion);
   }
 

@@ -17,6 +17,12 @@ class ApiException implements Exception {
   /// Código de negocio opcional, cuando el mensaje no alcanza para decidir.
   final String? codigo;
 
+  /// El servidor nunca contestó: no hay red, se cayó la conexión o expiró el
+  /// tiempo de espera. Se distingue de un error de negocio porque un fiado que
+  /// no pudo salir por falta de señal se guarda para reintentar, mientras que
+  /// uno que el servidor rechazó por monto inválido no tiene sentido encolar.
+  bool get esFallaDeRed => statusCode == null;
+
   bool get esNoAutorizado => statusCode == 401;
   bool get esConflicto => statusCode == 409;
   bool get requiereVerificarEmail => codigo == kCodigoEmailNoVerificado;
