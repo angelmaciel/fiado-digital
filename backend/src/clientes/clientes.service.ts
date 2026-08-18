@@ -1,8 +1,9 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, type Cliente } from '@prisma/client';
+import { Prisma, TipoMovimiento, type Cliente } from '@prisma/client';
 import { PrismaService } from '../common/prisma/prisma.service';
 import type { ActualizarClienteDto } from './dto/actualizar-cliente.dto';
 import type { CrearClienteDto } from './dto/crear-cliente.dto';
+import type { ClienteEnMoraDto, ListaMoraDto } from './dto/cliente-en-mora.dto';
 import type { ListarClientesDto, PaginaDto } from './dto/listar-clientes.dto';
 
 @Injectable()
@@ -87,6 +88,100 @@ export class ClientesService {
         ...(dto.limiteCredito !== undefined && { limiteCredito: dto.limiteCredito }),
       },
     });
+  }
+
+  /**
+   * HU-06 - quienes deben y hace tiempo que no pagan.
+   *
+   * La antiguedad se mide desde el ultimo PAGO. Un cliente que compro ayer
+   * pero pago hace dos meses esta en mora; uno que debe hace anos pero abono
+   * la semana pasada, no. Es la lectura que le sirve al despensero: la mora la
+   * define la plata que entra, no la que sale.
+   *
+   * Se resuelve con dos agregados en vez de recorrer el historial de cada
+   * cliente: uno para el ultimo pago y otro para el primer movimiento, que es
+   * el punto de partida de quienes nunca pagaron nada.
+   */
+  async listarEnMora(despensaId: string): Promise<ListaMoraDto> {
+    const despensa = await this.prisma.despensa.findUnique({
+      where: { id: despensaId },
+      select: { diasMoraConfig: true },
+    });
+
+    if (!despensa) {
+      throw new NotFoundException('Despensa no encontrada');
+    }
+
+    const deudores = await this.prisma.cliente.findMany({
+      where: { despensaId, saldoActual: { gt: 0 } },
+      select: { id: true, nombre: true, telefono: true, saldoActual: true },
+    });
+
+    if (deudores.length === 0) {
+      return { datos: [], diasMoraConfig: despensa.diasMoraConfig, deudaEnMora: 0 };
+    }
+
+    const ids = deudores.map((c) => c.id);
+
+    const [ultimosPagos, primerosMovimientos] = await Promise.all([
+      this.prisma.movimiento.groupBy({
+        by: ['clienteId'],
+        where: { clienteId: { in: ids }, tipo: TipoMovimiento.PAGO },
+        _max: { createdAt: true },
+      }),
+      this.prisma.movimiento.groupBy({
+        by: ['clienteId'],
+        where: { clienteId: { in: ids } },
+        _min: { createdAt: true },
+      }),
+    ]);
+
+    const pagoPorCliente = new Map(
+      ultimosPagos.map((p) => [p.clienteId, p._max.createdAt]),
+    );
+    const inicioPorCliente = new Map(
+      primerosMovimientos.map((p) => [p.clienteId, p._min.createdAt]),
+    );
+
+    const ahora = Date.now();
+    const enMora: ClienteEnMoraDto[] = [];
+
+    for (const cliente of deudores) {
+      const ultimoPago = pagoPorCliente.get(cliente.id) ?? null;
+      const referencia = ultimoPago ?? inicioPorCliente.get(cliente.id);
+
+      // Deuda sin ningun movimiento detras: no deberia pasar, pero si pasara
+      // no hay desde cuando contar.
+      if (!referencia) continue;
+
+      const diasSinPagar = Math.floor(
+        (ahora - referencia.getTime()) / (24 * 60 * 60 * 1000),
+      );
+
+      if (diasSinPagar >= despensa.diasMoraConfig) {
+        enMora.push({
+          id: cliente.id,
+          nombre: cliente.nombre,
+          telefono: cliente.telefono,
+          saldoActual: cliente.saldoActual,
+          diasSinPagar,
+          ultimoPago,
+          nuncaPago: ultimoPago === null,
+        });
+      }
+    }
+
+    // El que hace mas tiempo que no paga va primero: es a quien hay que ir a
+    // ver. A igualdad de dias, manda el monto.
+    enMora.sort(
+      (a, b) => b.diasSinPagar - a.diasSinPagar || b.saldoActual - a.saldoActual,
+    );
+
+    return {
+      datos: enMora,
+      diasMoraConfig: despensa.diasMoraConfig,
+      deudaEnMora: enMora.reduce((suma, c) => suma + c.saldoActual, 0),
+    };
   }
 
   /**

@@ -114,13 +114,15 @@ class MovimientosController extends AsyncNotifier<EstadoMovimientos> {
     return resultado.cliente.saldoActual;
   }
 
-  /// El saldo aparece en tres lugares: este historial, la ficha del cliente y
-  /// el listado. Se invalidan los tres para que ninguno quede mostrando un
-  /// número viejo.
+  /// El saldo aparece en varios lugares: este historial, la ficha del cliente,
+  /// el listado y la lista de mora. Se invalidan todos para que ninguno quede
+  /// mostrando un número viejo.
   void _refrescarPantallasRelacionadas() {
     ref.invalidateSelf();
     ref.invalidate(clienteProvider(clienteId));
     ref.invalidate(clientesControllerProvider);
+    // Cobrarle a alguien puede sacarlo de la lista de mora (HU-06).
+    ref.invalidate(moraProvider);
   }
 }
 

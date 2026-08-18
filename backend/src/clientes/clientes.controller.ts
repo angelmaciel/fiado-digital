@@ -18,6 +18,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ClientesService } from './clientes.service';
 import { ActualizarClienteDto } from './dto/actualizar-cliente.dto';
 import { CrearClienteDto } from './dto/crear-cliente.dto';
+import type { ListaMoraDto } from './dto/cliente-en-mora.dto';
 import { ListarClientesDto, type PaginaDto } from './dto/listar-clientes.dto';
 
 /** HU-02 — CRUD de clientes, siempre acotado a la despensa del token. */
@@ -40,6 +41,19 @@ export class ClientesController {
     @Query() filtros: ListarClientesDto,
   ): Promise<PaginaDto<Cliente>> {
     return this.clientes.listar(despensaId, filtros);
+  }
+
+  /**
+   * HU-06 - clientes que deben y hace tiempo que no pagan.
+   *
+   * Va declarada ANTES de `@Get(':id')` a proposito: Nest resuelve las rutas
+   * en orden y, al reves, tomaria "en-mora" como si fuera un id de cliente.
+   */
+  @Get('en-mora')
+  async listarEnMora(
+    @CurrentUser('despensaId') despensaId: string,
+  ): Promise<ListaMoraDto> {
+    return this.clientes.listarEnMora(despensaId);
   }
 
   @Get(':id')
