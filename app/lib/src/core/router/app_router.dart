@@ -11,6 +11,8 @@ import '../../features/auth/presentation/registro_screen.dart';
 import '../../features/auth/presentation/verificar_email_screen.dart';
 import '../../features/clientes/presentation/cliente_detalle_screen.dart';
 import '../../features/clientes/presentation/clientes_screen.dart';
+import '../../features/metodos_pago/presentation/metodos_pago_screen.dart';
+import '../../features/perfil/presentation/perfil_screen.dart';
 
 class Rutas {
   const Rutas._();
@@ -23,6 +25,8 @@ class Rutas {
   static const nuevaPassword = '/nueva-password';
   static const onboarding = '/onboarding';
   static const clientes = '/';
+  static const perfil = '/perfil';
+  static const metodosPago = '/metodos-pago';
 
   static String detalleCliente(String id) => '/clientes/$id';
 
@@ -117,11 +121,19 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (_, state) =>
                 ClienteDetalleScreen(clienteId: state.pathParameters['id']!),
           ),
+          GoRoute(path: 'perfil', builder: (_, _) => const PerfilScreen()),
+          GoRoute(
+            path: 'metodos-pago',
+            builder: (_, _) => const MetodosPagoScreen(),
+          ),
         ],
       ),
     ],
   );
 });
+
+/// Atajo para no repetir la ruta en cada pantalla que lleva ahí.
+void irAMetodosDePago(BuildContext context) => context.go(Rutas.metodosPago);
 
 class _PantallaCargando extends StatelessWidget {
   const _PantallaCargando();

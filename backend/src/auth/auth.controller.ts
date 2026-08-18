@@ -17,6 +17,7 @@ import type { UsuarioAutenticado } from '../common/types/usuario-autenticado';
 import type { PerfilGoogle } from '../usuarios/usuarios.service';
 import { AuthService } from './auth.service';
 import type { AuthResponseDto } from './dto/auth-response.dto';
+import { CambiarPasswordDto } from './dto/cambiar-password.dto';
 import {
   RestablecerPasswordDto,
   SoloEmailDto,
@@ -151,6 +152,24 @@ export class AuthController {
       dto.codigo,
       dto.nuevaPassword,
       req.headers['user-agent'],
+    );
+  }
+
+  /**
+   * Cambio de contraseña estando logueado. El `refreshToken` del body es
+   * opcional: si viene, esa sesión se mantiene y se cierran las demás.
+   */
+  @Post('cambiar-password')
+  @HttpCode(HttpStatus.OK)
+  async cambiarPassword(
+    @CurrentUser() usuario: UsuarioAutenticado,
+    @Body() dto: CambiarPasswordDto,
+  ): Promise<{ mensaje: string }> {
+    return this.auth.cambiarPassword(
+      usuario.id,
+      dto.passwordActual,
+      dto.nuevaPassword,
+      dto.refreshToken,
     );
   }
 

@@ -27,6 +27,114 @@ de la PC en la red local:
 --dart-define=API_BASE_URL=http://192.168.1.X:3000/api
 ```
 
+### Probar desde un celular en la misma red
+
+Sirve para revisar la interfaz en una pantalla real, que es donde aparecen los
+problemas de espacio y de teclado que en el escritorio no se ven.
+
+Hacen falta tres cosas, y omitir cualquiera de ellas falla de una forma
+distinta:
+
+```bash
+# 1. La app tiene que escuchar en todas las interfaces.
+#    Con --web-hostname=localhost solo responde a la propia PC y el celular
+#    recibe "no se pudo conectar al servidor".
+#
+# 2. API_BASE_URL tiene que apuntar a la IP de la PC. Sin esto la app pide los
+#    datos a "localhost", que desde el celular es el propio celular.
+flutter run -d web-server --web-port=5000 --web-hostname=0.0.0.0 \
+  --dart-define=API_BASE_URL=http://192.168.0.13:3000/api \
+  --dart-define=GOOGLE_WEB_CLIENT_ID=TU_CLIENT_ID_WEB.apps.googleusercontent.com
+```
+
+```bash
+# 3. En backend/.env, agregar ese origen. La app servida desde otra dirección
+#    es un origen distinto para el navegador, y sin esto bloquea cada llamada.
+CORS_ORIGINS=http://localhost:5000,http://192.168.0.13:5000
+```
+
+Para averiguar la IP de la PC: `ipconfig` en Windows, o
+`Get-NetIPAddress -AddressFamily IPv4` en PowerShell. El celular tiene que estar
+en la **misma red Wi-Fi**, no en datos móviles.
+
+Dos limitaciones conocidas de este entorno, que no son defectos:
+
+- **El botón de Google no funciona.** Ese origen no está autorizado en Google
+  Cloud Console. Se prueba entrando con correo y contraseña.
+- **La sesión se pierde al recargar la página.** El almacenamiento seguro del
+  navegador necesita `crypto.subtle`, que solo existe en contexto seguro (HTTPS
+  o `localhost`). La app lo detecta y guarda la sesión en memoria.
+
+## Compilar para Android
+
+```bash
+flutter run -d <emulador-o-dispositivo> \
+  --dart-define=GOOGLE_WEB_CLIENT_ID=TU_CLIENT_ID_WEB.apps.googleusercontent.com
+```
+
+### Cliente OAuth de Android
+
+Google exige un cliente aparte para Android, identificado por el paquete y la
+firma del APK:
+
+```
+Paquete:  com.fiadodigital.fiado_digital
+SHA-1:    el de tu keystore de depuración (ver abajo)
+```
+
+El Client ID de Android **no** se carga en el backend: la app manda el Client ID
+*Web* como `serverClientId`, así que el `id_token` sale con ese `aud` y el
+servidor solo necesita conocer ese.
+
+Para sacar tu SHA-1:
+
+```bash
+keytool -J-Duser.language=en -list -v \
+  -keystore ~/.android/debug.keystore \
+  -alias androiddebugkey -storepass android -keypass android
+```
+
+El `-J-Duser.language=en` no es capricho: la traducción al español de `keytool`
+en el JDK de Android Studio tiene un error de formato y revienta antes de
+imprimir la huella.
+
+### Si tenés un antivirus que inspecciona HTTPS
+
+Norton, Kaspersky, ESET y similares reemplazan los certificados de los sitios
+por unos propios para poder leer el tráfico. Windows confía en su raíz, pero
+**Java tiene su propio almacén de certificados** y rechaza la conexión, así que
+Gradle no se puede ni descargar:
+
+```
+PKIX path building failed: unable to find valid certification path
+```
+
+La solución que no requiere permisos de administrador es copiar el almacén de
+Java a una carpeta propia y agregarle el certificado del antivirus:
+
+```powershell
+# 1. Exportar el certificado raíz del antivirus
+$cert = Get-ChildItem Cert:\LocalMachine\Root | Where-Object { $_.Subject -like "*Norton*" }
+Export-Certificate -Cert $cert[0] -FilePath "$env:USERPROFILE\antivirus-root.cer" -Type CERT
+
+# 2. Copiar el almacén de Java y agregarle ese certificado
+$jbr = "C:\Program Files\Android\Android Studio\jbr"
+Copy-Item "$jbr\lib\security\cacerts" "$env:USERPROFILE\cacerts-con-antivirus"
+& "$jbr\bin\keytool.exe" -importcert -noprompt -trustcacerts -alias antivirus `
+  -file "$env:USERPROFILE\antivirus-root.cer" `
+  -keystore "$env:USERPROFILE\cacerts-con-antivirus" -storepass changeit
+```
+
+Y antes de cada build:
+
+```powershell
+$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
+$env:GRADLE_OPTS = "-Djavax.net.ssl.trustStore=$env:USERPROFILE\cacerts-con-antivirus -Djavax.net.ssl.trustStorePassword=changeit"
+```
+
+`JAVA_HOME` hace falta aparte: sin él, `sdkmanager` no encuentra Java y el build
+falla con un error que no lo menciona.
+
 ## Estructura
 
 ```

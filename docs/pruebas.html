@@ -1,0 +1,1286 @@
+<title>Pruebas de Fiado Digital</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+
+<style>
+  /* ---------------------------------------------------------------------
+     Paleta derivada del tema de la app (semilla #00695C): el documento y el
+     producto tienen que verse de la misma familia. Los neutros llevan sesgo
+     verde para que no choquen con el acento.
+     --------------------------------------------------------------------- */
+  :root {
+    --ground: #f5f8f6;
+    --surface: #ffffff;
+    --surface-2: #eef4f1;
+    --ink: #101f1b;
+    --ink-soft: #566a64;
+    --ink-faint: #8496908f;
+    --rule: #d7e3de;
+    --accent: #00695c;
+    --accent-ink: #00544a;
+    --accent-soft: #d3ede4;
+    --alert: #a52017;
+    --alert-soft: #fbe3e0;
+    --shadow: 0 1px 2px rgba(16, 31, 27, .06), 0 8px 24px rgba(16, 31, 27, .07);
+
+    --paso: clamp(1.5rem, 4vw, 2.75rem);
+    --lectura: 68ch;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0c1513;
+      --surface: #131e1b;
+      --surface-2: #18251f;
+      --ink: #e2ede9;
+      --ink-soft: #93a8a2;
+      --ink-faint: #6b807a8f;
+      --rule: #24332e;
+      --accent: #5fcfb4;
+      --accent-ink: #7fdcc4;
+      --accent-soft: #10322b;
+      --alert: #ff9b91;
+      --alert-soft: #3a1b18;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .35);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground: #0c1513;
+    --surface: #131e1b;
+    --surface-2: #18251f;
+    --ink: #e2ede9;
+    --ink-soft: #93a8a2;
+    --ink-faint: #6b807a8f;
+    --rule: #24332e;
+    --accent: #5fcfb4;
+    --accent-ink: #7fdcc4;
+    --accent-soft: #10322b;
+    --alert: #ff9b91;
+    --alert-soft: #3a1b18;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px rgba(0, 0, 0, .35);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "Source Serif 4", Georgia, "Times New Roman", serif;
+    font-size: 17px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: Archivo, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.15;
+    text-wrap: balance;
+    margin: 0;
+  }
+
+  code, kbd, pre, .dato {
+    font-family: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+  }
+
+  a { color: var(--accent-ink); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  a:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 3px;
+  }
+
+  /* --- Armazón ------------------------------------------------------- */
+
+  .hoja {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 var(--paso) 6rem;
+  }
+
+  .cuerpo {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 3rem;
+    align-items: start;
+  }
+
+  @media (min-width: 1020px) {
+    .cuerpo { grid-template-columns: 15rem minmax(0, 1fr); gap: 4rem; }
+  }
+
+  /* --- Portada ------------------------------------------------------- */
+
+  header.portada {
+    padding: clamp(3rem, 8vw, 5.5rem) 0 2.5rem;
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 3rem;
+  }
+
+  .cintillo {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .72rem;
+    font-weight: 500;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--accent-ink);
+    margin: 0 0 1.25rem;
+  }
+
+  h1 {
+    font-size: clamp(2.4rem, 6.5vw, 3.9rem);
+    font-weight: 700;
+    letter-spacing: -.025em;
+    max-width: 16ch;
+  }
+
+  .bajada {
+    max-width: var(--lectura);
+    margin: 1.25rem 0 0;
+    font-size: 1.15rem;
+    color: var(--ink-soft);
+  }
+
+  .ficha {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem 2.5rem;
+    margin-top: 2.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--rule);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .78rem;
+    color: var(--ink-soft);
+  }
+  .ficha b { color: var(--ink); font-weight: 500; }
+
+  /* --- Índice -------------------------------------------------------- */
+
+  nav.indice {
+    font-family: Archivo, sans-serif;
+    font-size: .875rem;
+  }
+
+  @media (min-width: 1020px) {
+    nav.indice { position: sticky; top: 2rem; max-height: calc(100vh - 4rem); overflow-y: auto; }
+  }
+
+  nav.indice > p {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .7rem;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin: 0 0 1rem;
+    padding-bottom: .6rem;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  nav.indice ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .45rem; }
+  nav.indice ol ol { margin: .45rem 0 .75rem .1rem; padding-left: 1.55rem; gap: .3rem; border-left: 1px solid var(--rule); }
+
+  nav.indice a {
+    color: var(--ink);
+    text-decoration: none;
+    display: flex;
+    gap: .6rem;
+    padding: .1rem 0;
+  }
+  nav.indice a:hover { color: var(--accent-ink); }
+  nav.indice ol ol a { color: var(--ink-soft); font-size: .82rem; }
+
+  nav.indice .n {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .74rem;
+    color: var(--ink-faint);
+    flex: none;
+    padding-top: .12rem;
+  }
+
+  /* --- Secciones ----------------------------------------------------- */
+
+  section { scroll-margin-top: 1.5rem; }
+  section + section { margin-top: 4.5rem; }
+
+  h2 {
+    font-size: clamp(1.6rem, 3.4vw, 2.1rem);
+    font-weight: 600;
+    letter-spacing: -.02em;
+    padding-top: 1.25rem;
+    border-top: 2px solid var(--ink);
+  }
+
+  h2 .n {
+    display: block;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .72rem;
+    font-weight: 500;
+    letter-spacing: .14em;
+    color: var(--accent-ink);
+    margin-bottom: .6rem;
+  }
+
+  h3 {
+    font-size: 1.22rem;
+    font-weight: 600;
+    margin-top: 2.75rem;
+    scroll-margin-top: 1.5rem;
+  }
+
+  h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-top: 2rem;
+    color: var(--ink-soft);
+  }
+
+  p, ul, ol { max-width: var(--lectura); }
+  p { margin: 1.1rem 0; }
+  section > ul, section > ol { padding-left: 1.2rem; }
+  li { margin: .4rem 0; }
+
+  strong { font-weight: 600; }
+  em { font-style: italic; color: var(--ink-soft); }
+
+  /* --- Tablas -------------------------------------------------------- */
+
+  .tabla { overflow-x: auto; margin: 1.75rem 0; border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); }
+
+  table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+
+  th {
+    font-family: Archivo, sans-serif;
+    font-size: .7rem;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    text-align: left;
+    color: var(--ink-soft);
+    padding: .8rem 1rem;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--rule);
+    white-space: nowrap;
+  }
+
+  td {
+    padding: .7rem 1rem;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+    line-height: 1.5;
+  }
+  tr:last-child td { border-bottom: 0; }
+
+  td.num, th.num { text-align: right; font-family: "IBM Plex Mono", monospace; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.clave { font-weight: 600; white-space: nowrap; }
+  td.orden { font-family: "IBM Plex Mono", monospace; color: var(--ink-faint); text-align: right; width: 2.5rem; }
+
+  /* Estado del resultado: se codifica en la forma además del texto, para que
+     una tabla larga se lea de un vistazo sin tener que leerla entera. */
+  .marca {
+    display: inline-block;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .72rem;
+    font-weight: 500;
+    padding: .12rem .45rem;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+  .marca.ok { background: var(--accent-soft); color: var(--accent-ink); }
+  .marca.no { background: var(--alert-soft); color: var(--alert); }
+
+  /* --- Bloques de código --------------------------------------------- */
+
+  pre {
+    margin: 1.5rem 0;
+    padding: 1.1rem 1.25rem;
+    background: var(--surface-2);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    overflow-x: auto;
+    font-size: .82rem;
+    line-height: 1.65;
+    color: var(--ink);
+  }
+  pre code { font-size: inherit; }
+
+  p code, li code, td code {
+    font-size: .85em;
+    background: var(--surface-2);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: .05em .34em;
+  }
+
+  /* --- Cifras del resumen -------------------------------------------- */
+
+  .cifras {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+    gap: 1px;
+    margin: 2rem 0;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .cifra { background: var(--surface); padding: 1.25rem; }
+  .cifra dt {
+    font-family: Archivo, sans-serif;
+    font-size: .72rem;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  .cifra dd {
+    margin: .35rem 0 0;
+    font-family: Archivo, sans-serif;
+    font-size: 2.2rem;
+    font-weight: 700;
+    letter-spacing: -.03em;
+    font-variant-numeric: tabular-nums;
+  }
+  .cifra dd small {
+    display: block;
+    font-family: "Source Serif 4", serif;
+    font-size: .8rem;
+    font-weight: 400;
+    letter-spacing: 0;
+    color: var(--ink-soft);
+    margin-top: .2rem;
+    line-height: 1.4;
+  }
+
+  /* --- Notas al margen ------------------------------------------------ */
+
+  .nota {
+    max-width: var(--lectura);
+    margin: 1.75rem 0;
+    padding: 1rem 1.25rem;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 5px 5px 0;
+    font-size: .95rem;
+  }
+  .nota.roja { border-left-color: var(--alert); }
+  .nota > :first-child { margin-top: 0; }
+  .nota > :last-child { margin-bottom: 0; }
+  .nota .rotulo {
+    display: block;
+    font-family: Archivo, sans-serif;
+    font-size: .7rem;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--accent-ink);
+    margin-bottom: .4rem;
+  }
+  .nota.roja .rotulo { color: var(--alert); }
+
+  /* --- Capturas ------------------------------------------------------- */
+
+  .galeria {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.75rem 1.5rem;
+    margin: 2rem 0 2.5rem;
+    max-width: 860px;
+  }
+  .galeria.dupla { grid-template-columns: repeat(auto-fit, minmax(200px, 260px)); }
+
+  figure { margin: 0; }
+
+  figure img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--rule);
+    border-radius: 14px;
+    background: var(--surface);
+    box-shadow: var(--shadow);
+  }
+
+  figcaption {
+    margin-top: .7rem;
+    font-size: .84rem;
+    line-height: 1.5;
+    color: var(--ink-soft);
+  }
+  figcaption b {
+    display: block;
+    font-family: Archivo, sans-serif;
+    font-size: .78rem;
+    font-weight: 600;
+    letter-spacing: .04em;
+    color: var(--ink);
+    margin-bottom: .15rem;
+  }
+
+  .sola { max-width: 260px; margin: 2rem 0 2.5rem; }
+
+  /* --- Pie ------------------------------------------------------------ */
+
+  footer {
+    margin-top: 5rem;
+    padding-top: 1.75rem;
+    border-top: 1px solid var(--rule);
+    font-size: .85rem;
+    color: var(--ink-soft);
+    max-width: var(--lectura);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  }
+</style>
+
+<div class="hoja">
+
+  <header class="portada">
+    <p class="cintillo">Fiado Digital · Documento de pruebas</p>
+    <h1>Qué está verificado, cómo, y qué no</h1>
+    <p class="bajada">
+      Fiado Digital es la app con la que una despensa de barrio anota lo que le
+      fía a cada cliente. Este documento registra todo lo que se probó del
+      sistema y con qué resultado. Está escrito para alguien que quiere
+      entender el proyecto sin haberlo desarrollado: no hace falta leer el
+      código para seguirlo.
+    </p>
+    <div class="ficha">
+      <span><b>Actualizado</b> 18 de agosto de 2026</span>
+      <span><b>Rama</b> develop</span>
+      <span><b>Alcance</b> HU-01 a HU-12</span>
+      <span><b>Crece con el proyecto</b> cada historia nueva agrega su sección</span>
+    </div>
+  </header>
+
+  <div class="cuerpo">
+
+    <nav class="indice" aria-label="Índice del documento">
+      <p>Índice</p>
+      <ol>
+        <li><a href="#resumen"><span class="n">1</span><span>Resumen</span></a></li>
+        <li>
+          <a href="#automaticas"><span class="n">2</span><span>Pruebas automatizadas</span></a>
+          <ol>
+            <li><a href="#backend">Backend</a></li>
+            <li><a href="#app">App</a></li>
+            <li><a href="#sin-cubrir">Lo que no cubren</a></li>
+          </ol>
+        </li>
+        <li>
+          <a href="#manuales"><span class="n">3</span><span>Verificaciones manuales</span></a>
+          <ol>
+            <li><a href="#auth">Autenticación</a></li>
+            <li><a href="#clientes">Clientes</a></li>
+            <li><a href="#movimientos">Movimientos</a></li>
+            <li><a href="#limite">Límite de crédito</a></li>
+            <li><a href="#mora">Mora</a></li>
+            <li><a href="#panel">Panel del negocio</a></li>
+            <li><a href="#pagos">Métodos de pago</a></li>
+          </ol>
+        </li>
+        <li><a href="#recorrido"><span class="n">4</span><span>Recorrido por la app</span></a></li>
+        <li>
+          <a href="#dispositivo"><span class="n">5</span><span>Pruebas en dispositivo real</span></a>
+          <ol>
+            <li><a href="#iphone">iPhone</a></li>
+            <li><a href="#windows">Windows</a></li>
+          </ol>
+        </li>
+        <li><a href="#android"><span class="n">6</span><span>Compilación en Android</span></a></li>
+        <li><a href="#capturas"><span class="n">7</span><span>Cómo se sacan las capturas</span></a></li>
+        <li><a href="#defectos"><span class="n">8</span><span>Defectos encontrados</span></a></li>
+        <li><a href="#agregar"><span class="n">9</span><span>Cómo agregar pruebas</span></a></li>
+      </ol>
+    </nav>
+
+    <main>
+
+      <!-- ============================================================ -->
+      <section id="resumen">
+        <h2><span class="n">Sección 1</span>Resumen</h2>
+
+        <dl class="cifras">
+          <div class="cifra">
+            <dt>Backend</dt>
+            <dd>58<small>pruebas automatizadas</small></dd>
+          </div>
+          <div class="cifra">
+            <dt>App</dt>
+            <dd>29<small>pruebas automatizadas</small></dd>
+          </div>
+          <div class="cifra">
+            <dt>Contra la API real</dt>
+            <dd>60+<small>casos verificados a mano</small></dd>
+          </div>
+          <div class="cifra">
+            <dt>Defectos</dt>
+            <dd>17<small>encontrados y corregidos</small></dd>
+          </div>
+        </dl>
+
+        <pre><code>cd backend &amp;&amp; npm test      # 58 pruebas, ~2 segundos
+cd app     &amp;&amp; flutter test   # 29 pruebas</code></pre>
+
+        <p>
+          Las dos suites corren en cada push a <code>main</code> y
+          <code>develop</code>, junto con el análisis estático y el build web.
+        </p>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="automaticas">
+        <h2><span class="n">Sección 2</span>Qué se prueba automáticamente y por qué</h2>
+
+        <p>
+          Las pruebas automatizadas no cubren todo el sistema, y es a
+          propósito. Cubren <strong>la lógica donde un error cuesta
+          plata</strong>, que es distinto de cubrir la lógica que es fácil de
+          probar.
+        </p>
+
+        <h3 id="backend">2.1 Backend</h3>
+
+        <p>
+          Son pruebas unitarias con Prisma simulado: no necesitan PostgreSQL,
+          corren en dos segundos y no dependen del estado de los datos.
+        </p>
+
+        <div class="tabla">
+          <table>
+            <thead>
+              <tr><th>Archivo</th><th class="num">Casos</th><th>Qué protege</th></tr>
+            </thead>
+            <tbody>
+              <tr><td class="clave"><code>password.service.spec.ts</code></td><td class="num">9</td><td>Es lo único entre la cuenta de un despensero y cualquiera que adivine su correo</td></tr>
+              <tr><td class="clave"><code>codigos.service.spec.ts</code></td><td class="num">10</td><td>Un código de 6 dígitos tiene un millón de combinaciones: lo protegen el vencimiento, el uso único y el límite de intentos</td></tr>
+              <tr><td class="clave"><code>movimientos.service.spec.ts</code></td><td class="num">18</td><td>Decide cuánta plata debe cada cliente</td></tr>
+              <tr><td class="clave"><code>despensas.service.spec.ts</code></td><td class="num">12</td><td>Un error acá no rompe nada visible: le miente al despensero sobre su negocio</td></tr>
+              <tr><td class="clave"><code>clientes.service.spec.ts</code></td><td class="num">10</td><td>Fija la definición de mora, que fue una decisión de diseño discutible</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="nota">
+          <span class="rotulo">Dos pruebas que fijan decisiones, no comportamiento</span>
+          <p>
+            Si alguien las cambia sin querer, la prueba falla y lo obliga a
+            pensar:
+          </p>
+          <ul>
+            <li><em>“una corrección tardía descuenta del mes en que se hizo”</em> — el mes anterior ya está cerrado y no se reescribe, como en contabilidad.</li>
+            <li><em>“SÍ marca en mora a quien compró ayer pero no paga hace meses”</em> — la mora se mide desde el último pago, no desde la última compra.</li>
+          </ul>
+        </div>
+
+        <h3 id="app">2.2 App</h3>
+
+        <div class="tabla">
+          <table>
+            <thead>
+              <tr><th>Archivo</th><th class="num">Casos</th><th>Qué cubre</th></tr>
+            </thead>
+            <tbody>
+              <tr><td class="clave"><code>widget_test.dart</code></td><td class="num">3</td><td>Formato y lectura de guaraníes</td></tr>
+              <tr><td class="clave"><code>whatsapp_test.dart</code></td><td class="num">4</td><td>Conversión de teléfonos paraguayos al formato internacional</td></tr>
+              <tr><td class="clave"><code>dominio_test.dart</code></td><td class="num">22</td><td>Efecto de cada movimiento sobre el saldo, veredicto de salud del negocio, lectura de errores de la API, armado del mensaje de método de pago, y qué promete la franja de sin conexión</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 id="sin-cubrir">2.3 Lo que las pruebas automatizadas no cubren</h3>
+
+        <p>Es tan importante saberlo como saber qué sí cubren.</p>
+
+        <ul>
+          <li><strong>Migraciones de base de datos.</strong> Se verifican al aplicarlas contra Neon.</li>
+          <li><strong>Restricciones de unicidad.</strong> Viven en PostgreSQL, no en el código.</li>
+          <li><strong>Concurrencia real.</strong> Requiere una base de verdad; se verificó a mano y está documentado abajo.</li>
+          <li><strong>Interfaz de usuario.</strong> No hay pruebas de widgets ni de integración. El recorrido con capturas (<a href="#recorrido">sección 4</a>) es lo más cerca que hay, y encontró un defecto.</li>
+          <li><strong>Modo sin conexión y notificaciones.</strong> Solo existen en Android y Windows.</li>
+        </ul>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="manuales">
+        <h2><span class="n">Sección 3</span>Verificaciones manuales contra la API</h2>
+
+        <p>
+          Todo lo de esta sección se ejecutó contra la API real corriendo sobre
+          la base de Neon. Los resultados son los observados, no los esperados.
+        </p>
+
+        <h3 id="auth">3.1 Autenticación</h3>
+
+        <h4>Google (HU-01)</h4>
+        <div class="tabla">
+          <table>
+            <thead><tr><th>Caso</th><th>Resultado</th></tr></thead>
+            <tbody>
+              <tr><td><code>id_token</code> inválido</td><td><span class="marca ok">401</span> no 500</td></tr>
+              <tr><td>Login completo desde Web</td><td><span class="marca ok">200</span> usuario creado con <code>googleUid</code></td></tr>
+              <tr><td>Cuenta nueva sin despensa</td><td><code>necesitaOnboarding: true</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>
+          El login con Google en Web necesitó registrar
+          <code>http://localhost:5000</code> como <strong>origen de
+          JavaScript</strong> en Google Cloud Console. Sin eso devuelve
+          <code>no registered origin</code> — y el error solo aparece al abrir
+          el popup, no al dibujar el botón.
+        </p>
+
+        <h4>Correo y contraseña</h4>
+        <div class="tabla">
+          <table>
+            <thead><tr><th>Caso</th><th>Resultado</th></tr></thead>
+            <tbody>
+              <tr><td>Registro</td><td><span class="marca ok">201</span> código emitido</td></tr>
+              <tr><td>Registro con correo ya existente y verificado</td><td><span class="marca no">409</span> con mensaje claro</td></tr>
+              <tr><td>Contraseña de 4 caracteres</td><td><span class="marca no">400</span></td></tr>
+              <tr><td>Login sin verificar el correo</td><td><span class="marca no">403</span> <code>EMAIL_NO_VERIFICADO</code>, reenvía el código</td></tr>
+              <tr><td>Código de verificación incorrecto</td><td><span class="marca no">400</span> <em>“te quedan 4 intentos”</em></td></tr>
+              <tr><td>Código correcto</td><td><span class="marca ok">200</span> sesión emitida</td></tr>
+              <tr><td>Reusar el mismo código</td><td><span class="marca no">400</span> ya consumido</td></tr>
+              <tr><td>Contraseña incorrecta</td><td><span class="marca no">401</span></td></tr>
+              <tr><td>Correo inexistente</td><td><span class="marca no">401</span> <strong>con el mismo mensaje</strong> que el caso anterior</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>
+          Ese último par es deliberado: mensajes distintos permitirían
+          averiguar qué correos están registrados.
+        </p>
+
+        <h4>Recuperación de contraseña</h4>
+        <div class="tabla">
+          <table>
+            <thead><tr><th>Caso</th><th>Resultado</th></tr></thead>
+            <tbody>
+              <tr><td>Pedido para un correo real</td><td>Mensaje genérico</td></tr>
+              <tr><td>Pedido para un correo inexistente</td><td><strong>El mismo</strong> mensaje genérico</td></tr>
+              <tr><td>Restablecer con código válido</td><td><span class="marca ok">200</span></td></tr>
+              <tr><td>Refresh token anterior al cambio</td><td><span class="marca no">401</span> revocado</td></tr>
+              <tr><td>Login con la contraseña vieja</td><td><span class="marca no">401</span></td></tr>
+              <tr><td>Login con la contraseña nueva</td><td><span class="marca ok">200</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h4>Cambio de contraseña desde adentro</h4>
+        <div class="tabla">
+          <table>
+            <thead><tr><th>Caso</th><th>Resultado</th></tr></thead>
+            <tbody>
+              <tr><td>Con la contraseña actual equivocada</td><td><span class="marca no">401</span></td></tr>
+              <tr><td>Con la correcta</td><td><span class="marca ok">200</span></td></tr>
+              <tr><td>Sesión de otro dispositivo</td><td><span class="marca no">401</span> cerrada</td></tr>
+              <tr><td>Sesión del dispositivo que hizo el cambio</td><td><span class="marca ok">200</span> sobrevive</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h4>Envío de correos</h4>
+        <p>Con <code>EMAIL_PROVIDER=smtp</code> apuntando a Gmail:</p>
+        <ul>
+          <li>La conexión se verifica <strong>al arrancar el servidor</strong>, no al mandar el primer correo. En el log aparece <code>Conexión SMTP verificada</code>.</li>
+          <li>Registro de prueba → correo recibido en la bandeja de entrada con el código.</li>
+        </ul>
+
+        <h3 id="clientes">3.2 Clientes (HU-02)</h3>
+        <div class="tabla">
+          <table>
+            <thead><tr><th>Caso</th><th>Resultado</th></tr></thead>
+            <tbody>
+              <tr><td>Buscar <code>"maria"</code> entre 3 clientes</td><td>2 resultados, sin distinguir mayúsculas</td></tr>
+              <tr><td>Buscar por teléfono parcial <code>"2222"</code></td><td>1 resultado</td></tr>
+              <tr><td>Paginado <code>limite=2</code> sobre 3 clientes</td><td>Página 1 de 2, trae 2</td></tr>
+              <tr><td>Editar nombre y límite</td><td><span class="marca ok">200</span></td></tr>
+              <tr><td>Borrar el teléfono (cadena vacía)</td><td>Queda <code>NULL</code></td></tr>
+              <tr><td>Teléfono con formato inválido</td><td><span class="marca no">400</span></td></tr>
+              <tr><td>Eliminar cliente con saldo 0</td><td><span class="marca ok">204</span></td></tr>
+              <tr><td>Eliminar cliente con saldo 125.000</td><td><span class="marca no">409</span> no lo permite</td></tr>
+              <tr><td>Consultar cliente de otra despensa</td><td><span class="marca no">404</span> no 403</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>
+          El 404 en vez de 403 es intencional: un 403 confirmaría que ese
+          identificador existe en alguna otra despensa.
+        </p>
+
+        <h3 id="movimientos">3.3 Movimientos (HU-03, HU-04, HU-05, HU-10)</h3>
+
+        <p>Secuencia sobre un mismo cliente, verificando el saldo después de cada paso:</p>
+
+        <div class="tabla">
+          <table>
+            <thead><tr><th>Operación</th><th class="num">Saldo resultante</th></tr></thead>
+            <tbody>
+              <tr><td>Fiado de 50.000</td><td class="num">50.000</td></tr>
+              <tr><td>Fiado de 30.000</td><td class="num">80.000</td></tr>
+              <tr><td>Pago de 20.000</td><td class="num">60.000</td></tr>
+              <tr><td>Reversa del primer fiado</td><td class="num">10.000</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>Rechazos correctos:</p>
+
+        <div class="tabla">
+          <table>
+            <thead><tr><th>Caso</th><th>Resultado</th></tr></thead>
+            <tbody>
+              <tr><td>Monto 0</td><td><span class="marca no">400</span></td></tr>
+              <tr><td>Monto negativo</td><td><span class="marca no">400</span></td></tr>
+              <tr><td>Tipo <code>AJUSTE</code> creado directamente</td><td><span class="marca no">400</span> solo nace de revertir</td></tr>
+              <tr><td>Revertir dos veces el mismo movimiento</td><td><span class="marca no">409</span></td></tr>
+              <tr><td>Revertir un ajuste</td><td><span class="marca no">409</span></td></tr>
+              <tr><td>Movimiento de otra despensa</td><td><span class="marca no">404</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h4>Concurrencia</h4>
+
+        <div class="nota roja">
+          <span class="rotulo">Esta prueba encontró un defecto real</span>
+          <p>
+            Está documentada en detalle porque es el tipo de error que no
+            aparece nunca con un solo usuario.
+          </p>
+        </div>
+
+        <p>Primera corrida, 20 fiados simultáneos al mismo cliente:</p>
+
+<pre><code>saldo antes:   10.000
+saldo después: 27.000   (esperado 30.000)
+movimientos creados: 17 de 20</code></pre>
+
+        <p>
+          Tres peticiones murieron con error 500. Lo importante es <strong>qué
+          no falló</strong>: el saldo coincidía exactamente con los movimientos
+          que sí entraron. Nunca se perdió una escritura ni quedó un saldo mal
+          calculado — se perdieron operaciones enteras, que es grave pero
+          visible.
+        </p>
+
+        <p>
+          La causa fue una transacción interactiva que retiene una conexión del
+          pool durante varios viajes a la base. Con 20 en paralelo el pool se
+          agota. Después de reescribirlo para que las dos sentencias viajen
+          juntas en un solo viaje, con 30 peticiones en paralelo:
+        </p>
+
+<pre><code>30 de 30 respondieron 201
+saldo: 45.000 → 75.000   (exacto)</code></pre>
+
+        <h4>Idempotencia (HU-07)</h4>
+
+        <p>
+          Es la garantía sobre la que se apoya todo el modo sin conexión: si un
+          fiado se manda, se corta el internet antes de recibir la respuesta y
+          se reintenta, no debe cobrarse dos veces.
+        </p>
+
+        <div class="tabla">
+          <table>
+            <thead><tr><th>Caso</th><th>Resultado</th></tr></thead>
+            <tbody>
+              <tr><td>Mismo movimiento enviado 4 veces seguidas</td><td>El saldo subió <strong>una</strong> vez</td></tr>
+              <tr><td>Mismo movimiento enviado 5 veces en paralelo</td><td>El saldo subió <strong>una</strong> vez</td></tr>
+              <tr><td>Movimientos creados en total</td><td>2 — uno por cada identificador distinto</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 id="limite">3.4 Límite de crédito (HU-08)</h3>
+
+        <p>Cliente con saldo 72.000 y límite 150.000:</p>
+
+        <div class="tabla">
+          <table>
+            <thead><tr><th>Caso</th><th>Resultado</th></tr></thead>
+            <tbody>
+              <tr><td>Fiado de 40.000 — queda en 112.000</td><td><span class="marca ok">201</span></td></tr>
+              <tr><td>Fiado de 60.000 — quedaría en 172.000</td><td><span class="marca no">409</span> <code>LIMITE_EXCEDIDO</code>, con el exceso y el saldo resultante</td></tr>
+              <tr><td>El mismo, con <code>forzarLimite: true</code></td><td><span class="marca ok">201</span></td></tr>
+              <tr><td>Un pago, estando ya pasado del límite</td><td><span class="marca ok">201</span> un pago nunca se bloquea</td></tr>
+              <tr><td>Un fiado que llega desde el modo sin conexión</td><td><span class="marca ok">201</span> esa venta ya ocurrió</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>
+          Las dos últimas excepciones son deliberadas. Rechazar un movimiento
+          que llega desde el modo sin conexión dejaría el saldo del dispositivo
+          distinto del servidor.
+        </p>
+
+        <h3 id="mora">3.5 Mora (HU-06)</h3>
+
+        <p>Con los datos de demostración cargados y el umbral en 30 días:</p>
+
+        <div class="tabla">
+          <table>
+            <thead><tr><th>Cliente</th><th class="num">Días sin pagar</th><th>Detectado</th></tr></thead>
+            <tbody>
+              <tr><td class="clave">Eligio Franco</td><td class="num">85</td><td><span class="marca ok">Sí</span> nunca pagó nada</td></tr>
+              <tr><td class="clave">Nimia Ovelar</td><td class="num">70</td><td><span class="marca ok">Sí</span></td></tr>
+              <tr><td class="clave">Zulma Escobar</td><td class="num">42</td><td><span class="marca ok">Sí</span> <strong>tiene fiados de hace 2 días</strong></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>
+          El caso de Zulma valida la definición elegida: compró hace dos días
+          pero no paga hace mes y medio, y está en mora. La mora la define la
+          plata que entra, no la que sale.
+        </p>
+
+        <h3 id="panel">3.6 Panel del negocio</h3>
+
+        <p>
+          Los valores del endpoint se compararon contra un cálculo
+          independiente hecho directamente sobre la base, sin pasar por el
+          servicio. <strong>Coinciden en los seis valores</strong>:
+        </p>
+
+<pre><code>este mes    fiado 651.000   cobrado 362.000   variación +289.000
+mes pasado  fiado 708.000   cobrado 443.000   variación +265.000
+tasa de recuperación: 56%   (mes pasado 63%)</code></pre>
+
+        <p>
+          El caso interesante: entre los movimientos del mes hay un fiado de
+          150.000 cargado por error y su corrección. Los dos caen en el mismo
+          mes y se cancelan, por eso el total dice 651.000 y no 801.000.
+        </p>
+
+        <h3 id="pagos">3.7 Métodos de pago (HU-11, HU-12)</h3>
+
+        <div class="tabla">
+          <table>
+            <thead><tr><th>Caso</th><th>Resultado</th></tr></thead>
+            <tbody>
+              <tr><td>Transferencia sin cuenta ni alias</td><td><span class="marca no">400</span></td></tr>
+              <tr><td>Alias sin el alias cargado</td><td><span class="marca no">400</span></td></tr>
+              <tr><td>Primer método cargado</td><td>Queda como principal automáticamente</td></tr>
+              <tr><td>Marcar otro como principal</td><td>El anterior deja de serlo</td></tr>
+              <tr><td>Borrar el principal</td><td>Asciende el más viejo de los que quedan</td></tr>
+              <tr><td>Método de otra despensa</td><td><span class="marca no">404</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="recorrido">
+        <h2><span class="n">Sección 4</span>Recorrido por la app</h2>
+
+        <p>
+          Las capturas salen de la cuenta de demostración, con 14 clientes y 55
+          movimientos repartidos en 90 días. Están tomadas a 390 × 844
+          píxeles, que es un celular de gama media: es la pantalla donde la app
+          se usa de verdad, y donde aparecen los problemas de espacio que en el
+          escritorio no se ven.
+        </p>
+
+        <h3>Entrar y ver a quién le fiaste</h3>
+
+        <div class="galeria">
+          <figure>
+            <img src="capturas/login.png" alt="Pantalla de entrada con los campos de correo y contraseña y el botón de Google.">
+            <figcaption><b>Entrada</b> Correo y contraseña, o Google. Los dos caminos llegan a la misma sesión.</figcaption>
+          </figure>
+          <figure>
+            <img src="capturas/clientes.png" alt="Listado de clientes con buscador, filtros y el saldo de cada uno en rojo.">
+            <figcaption><b>Clientes · HU-02</b> Cada fila lleva el saldo. Los que están en cero dicen “al día” en vez de mostrar un número más.</figcaption>
+          </figure>
+          <figure>
+            <img src="capturas/mora.png" alt="Lista de clientes atrasados con los días sin pagar y el botón de WhatsApp.">
+            <figcaption><b>Atrasados · HU-06</b> El número del círculo son los días sin pagar. Eligio nunca pagó nada, y eso se dice con esas palabras.</figcaption>
+          </figure>
+        </div>
+
+        <div class="nota">
+          <span class="rotulo">Lo que muestra la captura de atrasados</span>
+          <p>
+            Zulma aparece con 41 días aunque compró hace dos. Es exactamente el
+            caso de la <a href="#mora">sección 3.5</a>: la mora se mide desde el
+            último pago. Un cliente que sigue comprando y no paga es el que más
+            conviene ver en esa lista, no el que menos.
+          </p>
+        </div>
+
+        <h3>Fiar, cobrar y corregir</h3>
+
+        <div class="galeria">
+          <figure>
+            <img src="capturas/cliente-detalle.png" alt="Detalle de un cliente con su saldo actual, límite, disponible y los botones de fiar y cobrar.">
+            <figcaption><b>Detalle · HU-05</b> El saldo arriba, y debajo cuánto le queda disponible de su límite.</figcaption>
+          </figure>
+          <figure>
+            <img src="capturas/fiar.png" alt="Formulario para registrar un fiado, con el monto y el saldo que quedaría.">
+            <figcaption><b>Fiar · HU-03</b> El “queda debiendo” se recalcula mientras se escribe el monto, antes de confirmar nada.</figcaption>
+          </figure>
+          <figure>
+            <img src="capturas/fiar-limite.png" alt="El mismo formulario avisando que el cliente pasa su límite de crédito.">
+            <figcaption><b>Límite · HU-08</b> Avisa, no prohíbe. El dueño decide: es su plata y conoce al cliente.</figcaption>
+          </figure>
+        </div>
+
+        <div class="galeria dupla">
+          <figure>
+            <img src="capturas/historial-correccion.png" alt="Historial de movimientos con un fiado tachado y su corrección justo encima.">
+            <figcaption><b>Corrección · HU-10</b> Se cargaron 150.000 en vez de 15.000. El fiado equivocado queda tachado y marcado “corregido”, y arriba aparece la corrección con su explicación. Nada se borra.</figcaption>
+          </figure>
+        </div>
+
+        <div class="nota">
+          <span class="rotulo">Por qué el historial se ve así</span>
+          <p>
+            Los movimientos son inmutables: nunca se editan ni se borran. Un
+            error se arregla creando un movimiento de tipo <code>AJUSTE</code>
+            que apunta al original. El cuaderno de papel funciona igual —
+            tachado y anotado al lado— y es lo que permite que dueño y cliente
+            miren la misma cuenta sin discutir.
+          </p>
+        </div>
+
+        <h3>Cobrar por transferencia y mirar el negocio</h3>
+
+        <div class="galeria">
+          <figure>
+            <img src="capturas/metodos-pago.png" alt="Pantalla con las cuentas cargadas para recibir transferencias.">
+            <figcaption><b>Cómo me pagan · HU-11</b> El aviso lo deja claro: la app no recibe ni mueve plata. Son datos para pasarle al cliente.</figcaption>
+          </figure>
+          <figure>
+            <img src="capturas/compartir-pago.png" alt="Hoja para pasarle al cliente los datos de la cuenta, por WhatsApp o copiando el mensaje.">
+            <figcaption><b>Compartir · HU-12</b> Arma el mensaje con el monto y los datos juntos. Si el cliente tiene teléfono, va por WhatsApp; si no, se copia.</figcaption>
+          </figure>
+          <figure>
+            <img src="capturas/mi-negocio.png" alt="Panel del negocio con la plata en la calle y la tasa de recuperación.">
+            <figcaption><b>Mi negocio</b> “Plata en la calle” es la deuda total. Debajo, cuánto se cobra de lo que se fía, comparado con el mes pasado.</figcaption>
+          </figure>
+        </div>
+
+        <div class="galeria dupla">
+          <figure>
+            <img src="capturas/mi-negocio-clientes.png" alt="Segunda parte del panel con el total de clientes, los que deben y los que están al día.">
+            <figcaption><b>Mi negocio, segunda parte</b> Cuántos clientes hay, cuántos deben y cuántos están al día, más el aviso de quién pasó su límite.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="dispositivo">
+        <h2><span class="n">Sección 5</span>Pruebas en dispositivo real</h2>
+
+        <h3 id="iphone">5.1 iPhone — la app Web servida en la red local</h3>
+
+        <p>
+          Se probó la versión Web desde un iPhone conectado a la red local,
+          sirviendo la app desde la PC de desarrollo.
+          <strong>Encontró tres defectos que no aparecían en el navegador de
+          escritorio</strong> — los números 10, 11 y 12 de la
+          <a href="#defectos">sección 8</a>.
+        </p>
+
+        <p>Para reproducir el entorno:</p>
+
+<pre><code># La app tiene que escuchar en todas las interfaces, no solo en localhost,
+# y apuntar al backend por la IP de la red y no por localhost.
+flutter run -d web-server --web-port=5000 --web-hostname=0.0.0.0 \
+  --dart-define=API_BASE_URL=http://&lt;IP-DE-LA-PC&gt;:3000/api \
+  --dart-define=GOOGLE_WEB_CLIENT_ID=&lt;client-id-web&gt;</code></pre>
+
+        <p>
+          Y <code>CORS_ORIGINS</code> del backend tiene que incluir
+          <code>http://&lt;IP-DE-LA-PC&gt;:5000</code>: la app servida desde
+          otra dirección es otro origen para el navegador.
+        </p>
+
+        <p>Dos limitaciones conocidas de esta configuración, que no son defectos:</p>
+
+        <ul>
+          <li><strong>El login con Google falla</strong>, porque ese origen no está autorizado en Google Cloud Console. Se prueba con correo y contraseña.</li>
+          <li><strong>La sesión no sobrevive a recargar la página.</strong> El almacenamiento seguro del navegador necesita <code>crypto.subtle</code>, que solo existe en contexto seguro (HTTPS o localhost). La app lo detecta y cae a guardar la sesión en memoria.</li>
+        </ul>
+
+        <h3 id="windows">5.2 Windows — login con Google por navegador</h3>
+
+        <p>
+          Windows es la única plataforma con un flujo de login distinto:
+          <code>google_sign_in</code> no la soporta, así que la app abre el
+          navegador contra el backend y espera los tokens en un servidor local
+          en el puerto 8765. Es el camino que más partes tiene y el último que
+          quedaba sin verificar.
+        </p>
+
+        <div class="tabla">
+          <table>
+            <thead><tr><th>Paso</th><th>Resultado</th></tr></thead>
+            <tbody>
+              <tr><td>Compilación de escritorio</td><td><span class="marca ok">OK</span> 49 s con Visual Studio 2026</td></tr>
+              <tr><td><code>GET /api/auth/google</code></td><td><span class="marca ok">302</span> hacia Google</td></tr>
+              <tr><td><code>redirect_uri</code> que emite el backend</td><td><code>http://localhost:3000/api/auth/google/callback</code></td></tr>
+              <tr><td>¿Google acepta ese <code>redirect_uri</code>?</td><td><span class="marca ok">Sí</span> devuelve la pantalla de login, no <code>redirect_uri_mismatch</code></td></tr>
+              <tr><td>Vuelta al puerto 8765 con los tokens</td><td><span class="marca ok">OK</span> la app entra sola, sin copiar nada</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>
+          Con esto quedan verificados <strong>los tres caminos de
+          autenticación</strong>: correo y contraseña, Google en Web, y Google
+          en Windows.
+        </p>
+
+        <div class="nota roja">
+          <span class="rotulo">Un antivirus puede impedir que el ejecutable se genere</span>
+          <p>
+            En la máquina de desarrollo, Norton 360 bloquea la creación de
+            <code>fiado_digital.exe</code>. El síntoma engaña: el compilador
+            dice <code>LNK1104: no se puede abrir el archivo</code> sobre una
+            ruta que <em>no existe</em>, y escribir ahí a mano da “acceso
+            denegado” aun con la app cerrada y en una carpeta recién creada.
+          </p>
+          <p>
+            No es un problema del proyecto ni del código. Se resuelve
+            agregando la carpeta del repositorio a las exclusiones del
+            antivirus. Es el mismo antivirus que obliga al rodeo del almacén de
+            certificados de Java descrito en <code>app/README.md</code>.
+          </p>
+        </div>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="android">
+        <h2><span class="n">Sección 6</span>Compilación en Android</h2>
+
+        <p>
+          El APK de depuración compila. Eso confirma que <strong>SQLCipher,
+          drift y las notificaciones locales funcionan en Android</strong>, no
+          solo que pasan el análisis estático.
+        </p>
+
+        <p>
+          Requirió cinco correcciones encadenadas — desde un antivirus que
+          rompía el almacén de certificados de Java hasta la versión del plugin
+          de Gradle. Están documentadas paso a paso en
+          <a href="../app/README.md">app/README.md</a>.
+        </p>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="capturas">
+        <h2><span class="n">Sección 7</span>Cómo se sacan las capturas</h2>
+
+        <p>
+          Las once capturas de la <a href="#recorrido">sección 4</a> no se
+          sacan a mano. Las genera un script que abre la app, entra con una
+          cuenta de demostración y recorre las pantallas:
+        </p>
+
+<pre><code>cd backend        &amp;&amp; npm run demo:cuenta   # cuenta + 14 clientes + 55 movimientos
+cd tools/capturas &amp;&amp; npm run capturar     # las once capturas, ~90 segundos</code></pre>
+
+        <p>
+          Se automatizó porque este documento va a crecer. Cuando cambie la
+          interfaz, las once se regeneran con un comando, en vez de rehacerlas
+          una por una y que algunas queden viejas sin que nadie lo note.
+        </p>
+
+        <p>
+          La cuenta de demostración se arma desde cero en cada corrida, con
+          datos fijos. Así dos personas distintas que regeneren las capturas
+          obtienen lo mismo, y ninguna tiene que usar su cuenta personal.
+        </p>
+
+        <h3>Los tres obstáculos de automatizar Flutter Web</h3>
+
+        <p>
+          Flutter no dibuja botones ni campos en la página: pinta todo sobre un
+          canvas. Para una herramienta como Playwright, la app es una imagen.
+          Los tres problemas que hubo que resolver están anotados en el script,
+          porque cualquiera que lo modifique se los va a volver a encontrar:
+        </p>
+
+        <div class="tabla">
+          <table>
+            <thead><tr><th>Síntoma</th><th>Causa</th><th>Solución</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>No encuentra ningún campo ni botón</td>
+                <td>La interfaz está dibujada, no construida con elementos</td>
+                <td>Activar el árbol de accesibilidad de Flutter, que publica los mismos nodos en paralelo al dibujo</td>
+              </tr>
+              <tr>
+                <td>El campo de contraseña queda vacío aunque se le escriba</td>
+                <td>Rellenar el valor de golpe no llega al campo real</td>
+                <td>Hacer clic y teclear, que es el camino que recorre una persona</td>
+              </tr>
+              <tr>
+                <td>Un elemento visible en pantalla “no existe”</td>
+                <td>Flutter publica cada widget de forma distinta: unos con el texto adentro y otros con todo en la etiqueta</td>
+                <td>Buscar por rol, por etiqueta y por texto antes de darse por vencido</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>
+          Cuando algo falla, el script guarda una captura de lo que había en
+          pantalla y vuelca el árbol accesible completo. Sin eso, depurar una
+          corrida de minuto y medio es adivinar.
+        </p>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="defectos">
+        <h2><span class="n">Sección 8</span>Defectos encontrados</h2>
+
+        <p>
+          Ordenados por cuándo aparecieron. Se listan porque el tipo de defecto
+          dice más sobre el sistema que la cantidad.
+        </p>
+
+        <div class="tabla">
+          <table>
+            <thead>
+              <tr><th class="orden">#</th><th>Defecto</th><th>Cómo se encontró</th></tr>
+            </thead>
+            <tbody>
+              <tr><td class="orden">1</td><td>El servidor no arrancaba: una variable de entorno numérica sin anotación de tipo hacía que la validación rechazara el puerto</td><td>Primer arranque</td></tr>
+              <tr><td class="orden">2</td><td>TypeScript compilaba “sin errores” pero no generaba nada, porque la caché incremental quedó desincronizada de la carpeta de salida</td><td>Al reiniciar el backend</td></tr>
+              <tr><td class="orden">3</td><td>El APK de release habría quedado <strong>sin acceso a internet</strong>: Flutter solo declara ese permiso en depuración</td><td>Revisión del manifiesto</td></tr>
+              <tr><td class="orden">4</td><td>Android bloquea HTTP sin cifrar desde la versión 9, así que la app no podía hablar con el backend local</td><td>Revisión del manifiesto</td></tr>
+              <tr><td class="orden">5</td><td>No se podía <strong>borrar</strong> el teléfono de un cliente: el servidor rechazaba la cadena vacía</td><td>Al conectar la app con la API</td></tr>
+              <tr><td class="orden">6</td><td>El login con Google no funcionaba en Web: los navegadores bloquean el popup si no nace de un clic sobre el botón oficial de Google</td><td>Prueba en Chrome</td></tr>
+              <tr><td class="orden">7</td><td><strong>La lista de clientes sobrevivía al cierre de sesión.</strong> Al entrar con otra cuenta se veían los clientes de la anterior</td><td>Probando el login con Google después de uno con correo</td></tr>
+              <tr><td class="orden">8</td><td>Tres de veinte peticiones simultáneas morían por agotamiento del pool de conexiones</td><td>Prueba de concurrencia</td></tr>
+              <tr><td class="orden">9</td><td>Los datos de demostración nacían todos con la misma fecha de alta, dejando la métrica de crecimiento en cero</td><td>Al revisar el panel</td></tr>
+              <tr><td class="orden">10</td><td>Google Sign-In se inicializaba dos veces por una carrera entre dos caminos del arranque</td><td>Prueba en iPhone</td></tr>
+              <tr><td class="orden">11</td><td><strong>La app se colgaba sin mensaje</strong> ante cualquier error que no fuera de la API</td><td>Prueba en iPhone</td></tr>
+              <tr><td class="orden">12</td><td>Al abrirse el teclado, los formularios se iban tan arriba que tapaban lo que se estaba escribiendo</td><td>Prueba en iPhone</td></tr>
+              <tr><td class="orden">13</td><td>El paquete de cifrado de la base local estaba obsoleto y era un cascarón vacío</td><td>Al implementar el modo sin conexión</td></tr>
+              <tr><td class="orden">14</td><td>Un archivo temporal con un token de prueba se subió al repositorio</td><td>Auditoría del repositorio</td></tr>
+              <tr><td class="orden">15</td><td><strong>“Pasarle cómo pagarme” decía que no había ninguna cuenta cargada</strong> la primera vez que se abría en cada sesión, teniéndolas</td><td>Al automatizar las capturas</td></tr>
+              <tr><td class="orden">16</td><td>La etiqueta “100%” de la barra de recuperación salía cortada al medio</td><td>Al revisar las capturas generadas</td></tr>
+              <tr><td class="orden">17</td><td><strong>La franja decía “Sin internet, podés seguir anotando igual” aunque la base local no estuviera disponible</strong>, y cada fiado fallaba</td><td>Al verificar el modo sin conexión en Windows</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>
+          Vale la pena mirar la columna de la derecha. <strong>Ocho de los
+          diecisiete no había forma de encontrarlos leyendo código</strong>:
+          tres solo en un celular real, uno solo con veinte peticiones
+          simultáneas, uno solo al cambiar de cuenta, dos solo al mirar
+          capturas de las pantallas terminadas, y uno al ir a probar el modo sin
+          conexión en Windows.
+        </p>
+
+        <h3>El defecto 7, el más serio</h3>
+
+        <p>
+          En una despensa donde el dueño y un empleado comparten la tablet del
+          mostrador, la lista de clientes sobreviviendo al cierre de sesión era
+          una filtración de datos entre cuentas. La causa: los proveedores de
+          estado no se descartan solos, y la lista seguía en memoria con los
+          datos de la sesión anterior.
+        </p>
+
+        <h3>El defecto 15, y por qué las capturas valen la pena</h3>
+
+        <p>
+          Este apareció al automatizar el recorrido. La captura que tenía que
+          mostrar la hoja para compartir los datos bancarios mostró otra cosa:
+        </p>
+
+        <div class="galeria dupla">
+          <figure>
+            <img src="capturas/bug-metodos-sin-cargar.png" alt="Diálogo que dice que todavía no se cargó ningún método de pago, cuando la cuenta sí tiene uno.">
+            <figcaption><b>El defecto, tal como salió en la captura</b> La cuenta tiene una cuenta bancaria cargada. El diálogo dice que no.</figcaption>
+          </figure>
+        </div>
+
+        <p>
+          La hoja miraba los métodos de pago que hubiera <em>en ese
+          momento</em> en memoria, y nadie los carga antes: la única pantalla
+          que los pide es “Cómo me pagan”. Así que la primera vez en cada
+          sesión la lista estaba vacía simplemente porque todavía no había
+          llegado, y al dueño se le ofrecía cargar de nuevo algo que ya tenía.
+        </p>
+
+        <p>
+          La corrección fue esperar a que lleguen en vez de mirar lo que
+          hubiera. Es un defecto que ninguna prueba unitaria iba a encontrar,
+          porque nada estaba mal calculado: la lógica era correcta y el momento
+          en que se la consultaba, no.
+        </p>
+      </section>
+
+      <!-- ============================================================ -->
+      <section id="agregar">
+        <h2><span class="n">Sección 9</span>Cómo agregar pruebas</h2>
+
+        <h3>Backend</h3>
+
+        <p>
+          Un archivo <code>*.spec.ts</code> junto al servicio que prueba. Prisma
+          se simula; no hace falta base de datos:
+        </p>
+
+<pre><code>prisma = { cliente: { findFirst: jest.fn().mockResolvedValue(unCliente) } };
+service = new MiServicio(prisma as unknown as PrismaService);</code></pre>
+
+        <h3>App</h3>
+
+        <p>
+          Un archivo <code>*_test.dart</code> en <code>app/test/</code>. Se
+          prueba lógica pura —modelos, conversiones, decisiones— sin construir
+          widgets.
+        </p>
+
+        <h3>Capturas</h3>
+
+        <p>
+          Una pantalla nueva se agrega en
+          <code>tools/capturas/capturar.mjs</code>, y su figura en la
+          <a href="#recorrido">sección 4</a> de este documento.
+        </p>
+
+        <h3>El criterio</h3>
+
+        <div class="nota">
+          <p>
+            Antes de escribir una prueba, la pregunta útil no es <em>“¿puedo
+            probar esto?”</em> sino <em>“¿qué pasa si esto se rompe y nadie se
+            entera?”</em>. Si la respuesta es <em>“un cliente termina debiendo
+            un monto equivocado”</em>, va con prueba. Si es <em>“un texto se ve
+            raro”</em>, probablemente no valga el mantenimiento.
+          </p>
+        </div>
+      </section>
+
+      <footer>
+        <p>
+          Fiado Digital — documento de pruebas. Se actualiza junto con el
+          código: cada historia de usuario nueva agrega su sección, y las
+          capturas se regeneran con <code>npm run capturar</code>.
+        </p>
+      </footer>
+
+    </main>
+  </div>
+</div>

@@ -6,10 +6,17 @@ plugins {
 
 android {
     namespace = "com.fiadodigital.fiado_digital"
-    compileSdk = flutter.compileSdkVersion
+    // flutter_secure_storage 11 exige compilar contra el SDK 37, y para eso
+    // hizo falta subir el Android Gradle Plugin a 9.3.1 en settings.gradle.kts:
+    // el 9.1.0 que traía la plantilla solo llegaba hasta el 36.
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
+        // Lo exige flutter_local_notifications: usa las APIs de fecha y hora
+        // de Java 8, que en las versiones viejas de Android no existen. El
+        // desugaring las reescribe para que funcionen igual.
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -46,4 +53,11 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // Traduce las APIs modernas de fecha y hora de Java para que funcionen en
+    // versiones viejas de Android. Va de la mano con
+    // `isCoreLibraryDesugaringEnabled` y lo exige flutter_local_notifications.
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
 }

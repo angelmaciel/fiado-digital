@@ -1,4 +1,4 @@
-import type { RolUsuario, Usuario } from '@prisma/client';
+import type { MetodoAuth, RolUsuario, Usuario } from '@prisma/client';
 
 export interface UsuarioPublicoDto {
   id: string;
@@ -6,6 +6,11 @@ export interface UsuarioPublicoDto {
   email: string;
   rol: RolUsuario;
   despensaId: string | null;
+  /**
+   * Cómo entra a la app. La app lo usa, por ejemplo, para no ofrecerle
+   * "cambiar contraseña" a alguien que entra con Google y no tiene ninguna.
+   */
+  metodoAuth: MetodoAuth;
 }
 
 export interface AuthResponseDto {
@@ -29,5 +34,6 @@ export function aUsuarioPublico(usuario: Usuario): UsuarioPublicoDto {
     email: usuario.email,
     rol: usuario.rol,
     despensaId: usuario.despensaId,
+    metodoAuth: usuario.metodoAuth,
   };
 }

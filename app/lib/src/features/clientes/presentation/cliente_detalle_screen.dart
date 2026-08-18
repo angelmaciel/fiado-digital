@@ -6,8 +6,15 @@ import '../../../core/network/api_exception.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/guaranies.dart';
+import '../../movimientos/application/movimientos_controller.dart';
+import '../../movimientos/domain/movimiento.dart';
+import '../../movimientos/presentation/widgets/form_movimiento_sheet.dart';
+import '../../movimientos/presentation/widgets/lista_movimientos.dart';
 import '../application/clientes_controller.dart';
 import '../domain/cliente.dart';
+import '../../metodos_pago/presentation/widgets/compartir_metodo_pago.dart';
+import '../../perfil/application/perfil_controller.dart';
+import 'widgets/boton_whatsapp.dart';
 import 'widgets/form_cliente_sheet.dart';
 
 /// Detalle de cliente. Por ahora solo datos y saldo: el historial de
@@ -144,13 +151,13 @@ class ClienteDetalleScreen extends ConsumerWidget {
   }
 }
 
-class _Detalle extends StatelessWidget {
+class _Detalle extends ConsumerWidget {
   const _Detalle({required this.cliente});
 
   final Cliente cliente;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final tema = Theme.of(context);
 
     return ListView(
@@ -198,34 +205,181 @@ class _Detalle extends StatelessWidget {
             '${cliente.createdAt.year}',
           ),
         ),
+        if (cliente.saldoActual > 0) ...[
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: () => mostrarCompartirMetodoPago(
+              context,
+              ref,
+              nombreCliente: cliente.nombre,
+              telefonoCliente: cliente.telefono,
+              nombreDespensa:
+                  ref
+                      .watch(perfilControllerProvider)
+                      .value
+                      ?.despensa
+                      .nombreComercial ??
+                  'la despensa',
+              saldo: cliente.saldoActual,
+            ),
+            icon: const Icon(Icons.account_balance_outlined),
+            label: const Text('Pasarle cómo pagarme'),
+          ),
+          const SizedBox(height: 8),
+          BotonWhatsApp(
+            telefono: cliente.telefono,
+            mensaje: mensajeDeCobranza(
+              nombreCliente: cliente.nombre,
+              nombreDespensa:
+                  ref
+                      .watch(perfilControllerProvider)
+                      .value
+                      ?.despensa
+                      .nombreComercial ??
+                  'la despensa',
+              saldo: cliente.saldoActual,
+            ),
+          ),
+        ],
         const SizedBox(height: 24),
-        // Esqueleto: la lógica de movimientos entra en el Sprint 2.
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: null,
-                icon: const Icon(Icons.add_shopping_cart_outlined),
-                label: const Text('Fiar'),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: null,
-                icon: const Icon(Icons.payments_outlined),
-                label: const Text('Cobrar'),
-              ),
-            ),
-          ],
+        _BotonesDeMovimiento(cliente: cliente),
+        const SizedBox(height: 24),
+        Text('Historial', style: tema.textTheme.titleMedium),
+        ListaMovimientos(clienteId: cliente.id),
+      ],
+    );
+  }
+}
+
+/// HU-03 y HU-04: las dos acciones que el despensero hace todo el día.
+class _BotonesDeMovimiento extends ConsumerWidget {
+  const _BotonesDeMovimiento({required this.cliente});
+
+  final Cliente cliente;
+
+  Future<void> _registrar(
+    BuildContext context,
+    WidgetRef ref,
+    TipoMovimiento tipo,
+  ) async {
+    final mensajero = ScaffoldMessenger.of(context);
+    final colorError = Theme.of(context).colorScheme.error;
+
+    final datos = await mostrarFormularioMovimiento(
+      context,
+      cliente: cliente,
+      tipo: tipo,
+    );
+    if (datos == null) return;
+
+    try {
+      var saldo = await _intentarRegistrar(ref, tipo, datos);
+
+      // El backend rechaza los fiados que pasan el límite (HU-08). No es un
+      // error definitivo: se le pregunta al dueño y, si confirma, se reenvía
+      // forzando. El límite sigue significando algo, pero no le traba la venta.
+      if (saldo == null) {
+        if (!context.mounted) return;
+        final confirmado = await _confirmarExcesoDeLimite(
+          context,
+          ref,
+          cliente,
+        );
+        if (confirmado != true) return;
+
+        saldo = await _intentarRegistrar(ref, tipo, datos, forzar: true);
+        if (saldo == null) return;
+      }
+
+      mensajero.showSnackBar(
+        SnackBar(
+          content: Text(
+            saldo > 0
+                ? '${cliente.nombre} debe ${formatearGuaranies(saldo)}.'
+                : saldo == 0
+                ? '${cliente.nombre} quedó al día.'
+                : '${cliente.nombre} tiene ${formatearGuaranies(-saldo)} a favor.',
+          ),
         ),
-        const SizedBox(height: 12),
-        Center(
-          child: Text(
-            'Fiados y pagos se habilitan en el Sprint 2 (HU-03 a HU-05).',
-            style: tema.textTheme.bodySmall?.copyWith(
-              color: tema.colorScheme.onSurfaceVariant,
-            ),
+      );
+    } on ApiException catch (e) {
+      mensajero.showSnackBar(
+        SnackBar(content: Text(e.mensaje), backgroundColor: colorError),
+      );
+    }
+  }
+
+  /// Devuelve el saldo resultante, o null si el backend pidió confirmación por
+  /// exceder el límite de crédito.
+  Future<int?> _intentarRegistrar(
+    WidgetRef ref,
+    TipoMovimiento tipo,
+    DatosMovimiento datos, {
+    bool forzar = false,
+  }) async {
+    try {
+      return await ref
+          .read(movimientosControllerProvider(cliente.id).notifier)
+          .registrar(
+            tipo: tipo,
+            monto: datos.monto,
+            detalle: datos.detalle,
+            forzarLimite: forzar,
+          );
+    } on ApiException catch (e) {
+      if (e.excedeLimiteDeCredito && !forzar) return null;
+      rethrow;
+    }
+  }
+
+  Future<bool?> _confirmarExcesoDeLimite(
+    BuildContext context,
+    WidgetRef ref,
+    Cliente cliente,
+  ) {
+    return showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        icon: Icon(
+          Icons.warning_amber_rounded,
+          color: Theme.of(dialogContext).colorScheme.error,
+        ),
+        title: Text('${cliente.nombre} pasa su límite'),
+        content: Text(
+          'Su límite es de ${formatearGuaranies(cliente.limiteCredito ?? 0)} '
+          'y con este fiado quedaría debiendo más. ¿Le fiás igual?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('No'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Fiar igual'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Row(
+      children: [
+        Expanded(
+          child: FilledButton.icon(
+            onPressed: () => _registrar(context, ref, TipoMovimiento.fiado),
+            icon: const Icon(Icons.add_shopping_cart),
+            label: const Text('Fiar'),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: FilledButton.tonalIcon(
+            onPressed: () => _registrar(context, ref, TipoMovimiento.pago),
+            icon: const Icon(Icons.payments),
+            label: const Text('Cobrar'),
           ),
         ),
       ],

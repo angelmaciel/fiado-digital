@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/app_config.dart';
 import '../../../core/network/api_exception.dart';
+import '../../../core/local/base_local_provider.dart';
 import '../../../core/network/eventos_sesion.dart';
 import '../../../core/storage/token_storage.dart';
 import '../data/auth_api.dart';
@@ -79,6 +82,29 @@ class AuthController extends Notifier<AuthState> {
     return const AuthState();
   }
 
+  /// Traduce un error cualquiera a un mensaje que se le pueda mostrar.
+  ///
+  /// Existe porque cada camino de autenticación capturaba solo `ApiException`,
+  /// y cualquier otra falla -por ejemplo, no poder guardar los tokens- dejaba
+  /// la pantalla con el botón en "procesando" para siempre. Una pantalla
+  /// trabada sin explicación es peor que un error feo.
+  String _mensajeDeError(Object error) {
+    if (error is ApiException) return error.mensaje;
+
+    // El almacenamiento seguro del navegador necesita `crypto.subtle`, que
+    // solo existe en contexto seguro: HTTPS o localhost. Servida por IP y sin
+    // HTTPS, la sesión no se puede guardar.
+    final texto = error.toString();
+    if (texto.contains('crypto') ||
+        texto.contains('subtle') ||
+        texto.contains('SecurityError')) {
+      return 'Este navegador no deja guardar la sesión sin HTTPS. '
+          'Entrá por localhost o desde la app instalada.';
+    }
+
+    return 'No se pudo completar la operación: $texto';
+  }
+
   AuthApi get _api => ref.read(authApiProvider);
   TokenStorage get _storage => ref.read(tokenStorageProvider);
   GoogleAuthService get _google => ref.read(googleAuthServiceProvider);
@@ -90,6 +116,10 @@ class AuthController extends Notifier<AuthState> {
 
     if (token == null) {
       state = const AuthState(estado: EstadoSesion.sinSesion);
+      // Sin sesión guardada, se ofrece entrar con una cuenta de Google que ya
+      // esté en el dispositivo. No bloquea la pantalla: si no hay ninguna, o
+      // el usuario la ignora, queda el login normal a la vista.
+      unawaited(_intentarEntradaRapidaConGoogle());
       return;
     }
 
@@ -128,6 +158,29 @@ class AuthController extends Notifier<AuthState> {
     }
   }
 
+  /// One Tap / FedCM: entrar con una cuenta que ya está en el dispositivo.
+  ///
+  /// Corre en segundo plano y en silencio. No toca `procesando` a propósito:
+  /// si bloqueara la pantalla y el usuario ignorara el diálogo, se quedaría con
+  /// los botones deshabilitados sin entender por qué.
+  Future<void> _intentarEntradaRapidaConGoogle() async {
+    try {
+      final idToken = await _google.intentarEntradaRapida();
+      if (idToken == null) return;
+
+      // Si mientras tanto entró por otro camino, no se pisa esa sesión.
+      if (state.estado != EstadoSesion.sinSesion) return;
+
+      await _canjearIdTokenPorSesion(idToken);
+    } catch (_) {
+      // Es un intento silencioso y opcional: si falla por lo que sea -el
+      // backend rechazó el token, el plugin no está disponible, no hay red-
+      // simplemente queda el login normal a la vista. No se atrapa solo
+      // ApiException porque un error del plugin quedaría sin manejar y
+      // rompería el arranque de la app.
+    }
+  }
+
   /// Entrada del login por botón renderizado (Web): el token llega solo, sin
   /// que nadie haya llamado a `iniciarSesionConGoogle`.
   Future<void> _completarLoginConIdToken(String idToken) async {
@@ -135,8 +188,8 @@ class AuthController extends Notifier<AuthState> {
 
     try {
       await _canjearIdTokenPorSesion(idToken);
-    } on ApiException catch (e) {
-      state = state.copyWith(procesando: false, error: e.mensaje);
+    } catch (e) {
+      state = state.copyWith(procesando: false, error: _mensajeDeError(e));
     }
   }
 
@@ -173,11 +226,11 @@ class AuthController extends Notifier<AuthState> {
       final sesion = await _api.loginConEmail(email: email, password: password);
       await _guardarSesion(sesion);
       return true;
-    } on ApiException catch (e) {
+    } catch (e) {
       state = state.copyWith(
         procesando: false,
-        error: e.mensaje,
-        requiereVerificarEmail: e.requiereVerificarEmail,
+        error: _mensajeDeError(e),
+        requiereVerificarEmail: e is ApiException && e.requiereVerificarEmail,
       );
       return false;
     }
@@ -194,8 +247,8 @@ class AuthController extends Notifier<AuthState> {
         await _api.verificarEmail(email: email, codigo: codigo),
       );
       return true;
-    } on ApiException catch (e) {
-      state = state.copyWith(procesando: false, error: e.mensaje);
+    } catch (e) {
+      state = state.copyWith(procesando: false, error: _mensajeDeError(e));
       return false;
     }
   }
@@ -224,8 +277,8 @@ class AuthController extends Notifier<AuthState> {
         ),
       );
       return true;
-    } on ApiException catch (e) {
-      state = state.copyWith(procesando: false, error: e.mensaje);
+    } catch (e) {
+      state = state.copyWith(procesando: false, error: _mensajeDeError(e));
       return false;
     }
   }
@@ -239,8 +292,8 @@ class AuthController extends Notifier<AuthState> {
       final mensaje = await operacion();
       state = state.copyWith(procesando: false);
       return mensaje;
-    } on ApiException catch (e) {
-      state = state.copyWith(procesando: false, error: e.mensaje);
+    } catch (e) {
+      state = state.copyWith(procesando: false, error: _mensajeDeError(e));
       return null;
     }
   }
@@ -257,6 +310,18 @@ class AuthController extends Notifier<AuthState> {
     );
   }
 
+  /// Relee el usuario desde el backend. Se llama después de editar el perfil,
+  /// para que el nombre nuevo se vea sin tener que cerrar sesión.
+  Future<void> refrescarUsuario() async {
+    try {
+      final usuario = await _api.obtenerUsuarioActual();
+      state = AuthState(estado: _estadoSegun(usuario), usuario: usuario);
+    } on ApiException {
+      // Si falla, se conserva el estado actual: no vale la pena sacar al
+      // usuario de la app porque no se pudo refrescar su nombre.
+    }
+  }
+
   /// Completa el onboarding creando la despensa del dueño.
   Future<void> crearDespensa({
     required String nombreComercial,
@@ -270,8 +335,8 @@ class AuthController extends Notifier<AuthState> {
         diasMoraConfig: diasMoraConfig,
       );
       state = AuthState(estado: _estadoSegun(usuario), usuario: usuario);
-    } on ApiException catch (e) {
-      state = state.copyWith(procesando: false, error: e.mensaje);
+    } catch (e) {
+      state = state.copyWith(procesando: false, error: _mensajeDeError(e));
     }
   }
 
@@ -289,6 +354,11 @@ class AuthController extends Notifier<AuthState> {
 
   Future<void> _limpiarSesionLocal() async {
     await _storage.limpiar();
+
+    // Los clientes y saldos guardados en el dispositivo no deben quedar
+    // legibles para quien entre después con otra cuenta.
+    await ref.read(baseLocalSiEstaListaProvider)?.vaciar();
+
     state = const AuthState(estado: EstadoSesion.sinSesion);
   }
 

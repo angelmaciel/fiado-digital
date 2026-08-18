@@ -1,4 +1,4 @@
-import type { RolUsuario } from '@prisma/client';
+import type { MetodoAuth, RolUsuario } from '@prisma/client';
 
 /** Forma del `request.user` después de pasar por JwtStrategy. */
 export interface UsuarioAutenticado {
@@ -8,6 +8,8 @@ export interface UsuarioAutenticado {
   rol: RolUsuario;
   /** Null mientras el usuario no completó el onboarding de su despensa. */
   despensaId: string | null;
+  /** La app lo usa para decidir si ofrecer "cambiar contraseña". */
+  metodoAuth: MetodoAuth;
 }
 
 /** Claims del access token que firmamos con RS256. */

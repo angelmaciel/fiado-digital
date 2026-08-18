@@ -2,6 +2,7 @@
 node_modules/
 
 # Entorno / secretos
+*.tmp
 .env
 .env.*
 !.env.example
@@ -21,7 +22,10 @@ app/build/
 app/android/.gradle/
 app/android/local.properties
 app/windows/flutter/ephemeral/
-app/**/*.g.dart
+# Los archivos generados por drift SI se versionan. Regenerarlos en CI cuesta
+# unos 3 minutos por push (build_runner compila sus builders desde cero), y
+# tenerlos en el repo garantiza que la CI compile exactamente lo mismo que se
+# verifico localmente.
 app/**/*.freezed.dart
 
 # Editores / SO

@@ -1,5 +1,7 @@
 # Fiado Digital
 
+[![CI](https://github.com/angelmaciel/fiado-digital/actions/workflows/ci.yml/badge.svg)](https://github.com/angelmaciel/fiado-digital/actions/workflows/ci.yml)
+
 App multiplataforma (Android, Windows, Web) para que despensas y almacenes de
 barrio en Paraguay digitalicen el registro de ventas a crédito ("fiado").
 
@@ -20,6 +22,28 @@ fiado-digital/
   `AJUSTE` que referencia al original vía `movimiento_reversa_de`.
 - **Saldo**: `Σ FIADO − Σ PAGO (± AJUSTE)`.
 - **Montos**: guaraníes, siempre enteros (sin decimales).
+
+## Cómo se trabaja
+
+`main` es lo estable y solo recibe merges al cerrar cada sprint, con un tag.
+`develop` acumula el sprint en curso, y cada historia de usuario sale en su
+propia rama `feature/HU-XX-...`.
+
+El detalle, con los comandos, está en [docs/flujo-git.md](docs/flujo-git.md).
+
+Qué está verificado y cómo, con capturas de cada pantalla:
+[docs/pruebas.html](docs/pruebas.html) — se abre en el navegador.
+
+Las capturas se regeneran solas con `cd tools/capturas && npm run capturar`.
+
+Cada push a `main` o `develop` dispara la CI: type-check y build del backend,
+más formato, análisis, tests y build web de la app.
+
+## Despliegue
+
+Los dos servicios están definidos en [render.yaml](render.yaml) y siguen la rama
+`main`. Los pasos, los valores que hay que cargar a mano y lo que hay que tocar
+en Google Cloud Console están en [docs/despliegue.md](docs/despliegue.md).
 
 ## Estado actual
 

@@ -1,0 +1,190 @@
+# =============================================================================
+# Fiado Digital — despliegue en Render
+#
+# Define los dos servicios de una vez, para que el despliegue quede versionado
+# acá y no como una serie de clics en un panel que nadie puede revisar después.
+#
+# Cómo se usa:
+#   1. En Render: New → Blueprint, y apuntá al repositorio.
+#   2. Render lee este archivo y crea los dos servicios.
+#   3. Pide los valores marcados como `sync: false`. Esos NUNCA van en el repo.
+#
+# El orden importa y hay un huevo y la gallina: el backend necesita la URL de
+# la web para CORS, y la web necesita la URL del backend para las llamadas.
+# Está explicado paso a paso en docs/despliegue.md.
+#
+# Los dos servicios siguen la rama `main`, que es la estable. `develop` no
+# despliega nada: se acumula ahí y recién al cerrar un sprint llega a producción.
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # API — NestJS + Prisma contra la base de Neon
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: fiado-digital-api
+    runtime: node
+    plan: free
+    branch: main
+    rootDir: backend
+
+    # Conviene que la API esté cerca de la base: cada consulta paga la distancia
+    # dos veces. Neon tiene región propia — si la tuya es São Paulo, `virginia`
+    # es lo más cerca que llega el plan gratuito de Render.
+    region: virginia
+
+    # `npm ci` y no `npm install`: instala exactamente lo del package-lock, así
+    # producción corre las mismas versiones que se probaron.
+    #
+    # `migrate deploy` y no `migrate dev`: aplica las migraciones que existen
+    # sin generar ninguna nueva ni pedir confirmación. Usa DIRECT_URL, porque
+    # el pooler de Neon no soporta migraciones.
+    buildCommand: npm ci && npm run build && npx prisma migrate deploy
+    startCommand: npm run start:prod
+
+    # Render reinicia el servicio si esto deja de responder. El endpoint ya
+    # existe y además verifica que la base conteste, no solo que el proceso viva.
+    healthCheckPath: /api/health
+
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+
+      - key: NODE_ENV
+        value: production
+
+      # PORT la inyecta Render. No la definas: si la fijás a mano, el servicio
+      # escucha en un puerto distinto del que Render enruta y queda muerto.
+
+      # Orígenes permitidos, separados por coma y sin espacios.
+      #
+      # Se carga a mano porque recién se conoce cuando la web ya está desplegada.
+      # Ojo: si esta variable queda vacía, el backend acepta CUALQUIER origen.
+      # Cómodo en desarrollo, inaceptable acá.
+      - key: CORS_ORIGINS
+        sync: false
+
+      # --- Base de datos (Neon) ---------------------------------------------
+      # DATABASE_URL: la del pooler, para el tráfico normal.
+      # DIRECT_URL:   la directa, solo para migraciones.
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+
+      # --- Firma de tokens ---------------------------------------------------
+      # El par RSA en base64. Se genera con `npm run keys:generate`.
+      # Cambiarlas invalida todas las sesiones abiertas.
+      - key: JWT_PRIVATE_KEY_BASE64
+        sync: false
+      - key: JWT_PUBLIC_KEY_BASE64
+        sync: false
+
+      - key: JWT_ISSUER
+        value: fiado-digital
+      - key: JWT_AUDIENCE
+        value: fiado-digital-app
+      - key: JWT_ACCESS_TOKEN_TTL
+        value: 15m
+      - key: JWT_REFRESH_TOKEN_TTL_DAYS
+        value: "30"
+
+      # --- Google OAuth ------------------------------------------------------
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+
+      # Tiene que ser la URL pública de ESTE servicio, y estar registrada igual
+      # en Google Cloud Console como URI de redirección autorizado:
+      #   https://fiado-digital-api.onrender.com/api/auth/google/callback
+      - key: GOOGLE_CALLBACK_URL
+        sync: false
+
+      - key: GOOGLE_ADDITIONAL_CLIENT_IDS
+        value: ""
+
+      # Sigue apuntando a localhost a propósito, también en producción: no es
+      # una dirección del servidor, es el servidor loopback que levanta la app
+      # de Windows en la máquina de quien la usa. Cambiarla rompe ese login.
+      - key: OAUTH_SUCCESS_REDIRECT_URL
+        value: http://localhost:8765/auth/callback
+
+      # --- Correo ------------------------------------------------------------
+      # Con `consola` los códigos de verificación se imprimen en el log en vez
+      # de enviarse. En una demo pública eso significa que nadie puede
+      # registrarse: para eso está la cuenta de demostración (ver docs).
+      - key: EMAIL_PROVIDER
+        value: smtp
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: EMAIL_REMITENTE
+        sync: false
+
+  # ---------------------------------------------------------------------------
+  # Web — la app Flutter compilada a archivos estáticos
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: fiado-digital-web
+    runtime: static
+    plan: free
+    branch: main
+    rootDir: app
+
+    # Render no trae Flutter en su imagen de build, así que hay que bajarlo.
+    #
+    # Se clona una versión fija y no `stable`: con `stable`, una release nueva
+    # de Flutter puede romper el build sin que nadie haya tocado el repo, y el
+    # despliegue falla por algo que no cambió acá. Este número tiene que
+    # coincidir con el que usás localmente (`flutter --version`).
+    #
+    # Los `--dart-define` se hornean en el build: no son configuración de
+    # runtime. Cambiar la URL de la API obliga a recompilar y redesplegar.
+    buildCommand: |
+      git clone --depth 1 -b 3.47.0 https://github.com/flutter/flutter.git "$HOME/flutter"
+      export PATH="$HOME/flutter/bin:$PATH"
+      flutter --version
+      flutter build web --release \
+        --dart-define=API_BASE_URL="$API_BASE_URL" \
+        --dart-define=GOOGLE_WEB_CLIENT_ID="$GOOGLE_WEB_CLIENT_ID"
+
+    staticPublishPath: build/web
+
+    envVars:
+      # La URL pública de la API, con /api al final:
+      #   https://fiado-digital-api.onrender.com/api
+      - key: API_BASE_URL
+        sync: false
+
+      # El Client ID del cliente **Web** de Google Cloud Console.
+      #
+      # No es un secreto —viaja en el HTML de cualquier sitio que use Google
+      # Sign-In— pero se carga por variable igual, para no dejar identificadores
+      # de una cuenta concreta escritos en el repositorio.
+      - key: GOOGLE_WEB_CLIENT_ID
+        sync: false
+
+    routes:
+      # La app usa rutas con `#`, así que hoy esto no hace falta. Queda puesto
+      # para el día que se pase a URLs limpias: sin esta regla, entrar directo
+      # a /clientes o recargar la página devuelve 404, porque en el disco no
+      # existe ningún archivo con ese nombre.
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
+    headers:
+      # La app se sirve entera desde el mismo origen y no se embebe en ningún
+      # lado; negarlo evita que alguien la monte dentro de un iframe ajeno.
+      - path: /*
+        name: X-Frame-Options
+        value: SAMEORIGIN
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff

@@ -35,7 +35,15 @@ class TokensDelNavegador {
 const int kPuertoCallbackEscritorio = 8765;
 
 class GoogleAuthService {
-  bool _inicializado = false;
+  /// La inicialización en curso, o la ya terminada.
+  ///
+  /// Se guarda el Future y no una bandera booleana a propósito. Con una
+  /// bandera que se marca después del `await`, dos llamadas simultáneas pasan
+  /// las dos la comprobación antes de que ninguna termine, y el plugin —que
+  /// exige que `initialize()` se llame exactamente una vez— revienta con
+  /// "init() has already been called". Al memorizar el Future, la segunda
+  /// llamada espera a la primera en vez de arrancar otra.
+  Future<void>? _inicializacion;
 
   /// Tokens que llegan por el botón renderizado de Google (solo Web).
   ///
@@ -56,6 +64,32 @@ class GoogleAuthService {
 
   /// Debe completarse antes de renderizar el botón de Google en Web.
   Future<void> inicializar() => _inicializar();
+
+  /// Intento de entrada sin fricción: One Tap en Android, FedCM en Web.
+  ///
+  /// Le muestra al usuario las cuentas de Google que ya tiene en el dispositivo
+  /// para que entre con un toque, sin pasar por el selector completo.
+  ///
+  /// Devuelve el `id_token` si la plataforma resolvió el intento, o null en dos
+  /// casos distintos que acá se tratan igual:
+  /// - no había ninguna sesión de Google que reutilizar;
+  /// - la plataforma no resuelve por retorno sino por evento (es lo que hace
+  ///   FedCM en Web), y el token va a llegar por `idTokensDelBotonWeb`.
+  Future<String?> intentarEntradaRapida() async {
+    await _inicializar();
+
+    try {
+      final intento = GoogleSignIn.instance.attemptLightweightAuthentication();
+      if (intento == null) return null;
+
+      final cuenta = await intento;
+      return cuenta?.authentication.idToken;
+    } on GoogleSignInException {
+      // Un intento silencioso que falla no es un error que mostrarle a nadie:
+      // simplemente se cae al login normal.
+      return null;
+    }
+  }
 
   /// Android: devuelve el `id_token` que después verifica el backend.
   Future<String> obtenerIdToken() async {
@@ -120,30 +154,40 @@ class GoogleAuthService {
   }
 
   Future<void> cerrarSesionDeGoogle() async {
-    if (AppConfig.usaFlujoDeNavegador || !_inicializado) return;
+    // Si nunca se inicializó no hay sesión de Google que cerrar, y llamar al
+    // plugin sin inicializar es un error.
+    if (AppConfig.usaFlujoDeNavegador || _inicializacion == null) return;
     await GoogleSignIn.instance.signOut();
   }
 
   /// `initialize()` debe llamarse exactamente una vez antes que cualquier otro
-  /// método del plugin.
-  Future<void> _inicializar() async {
-    if (_inicializado) return;
+  /// método del plugin. Llamar a esto de más es seguro.
+  Future<void> _inicializar() {
+    return _inicializacion ??= _inicializarUnaSolaVez();
+  }
 
+  Future<void> _inicializarUnaSolaVez() async {
     if (AppConfig.googleWebClientId.isEmpty) {
+      // Se limpia para que un arranque sin el Client ID no deje la
+      // inicialización marcada como hecha y rota para siempre.
+      _inicializacion = null;
       throw const ApiException(
         'Falta GOOGLE_WEB_CLIENT_ID. Pasalo con --dart-define al correr la app.',
       );
     }
 
-    await GoogleSignIn.instance.initialize(
-      // En Web el plugin necesita el clientId. En Android alcanza con
-      // serverClientId: hace que el id_token salga con el `aud` del cliente
-      // Web, que es el único que el backend conoce.
-      clientId: kIsWeb ? AppConfig.googleWebClientId : null,
-      serverClientId: kIsWeb ? null : AppConfig.googleWebClientId,
-    );
-
-    _inicializado = true;
+    try {
+      await GoogleSignIn.instance.initialize(
+        // En Web el plugin necesita el clientId. En Android alcanza con
+        // serverClientId: hace que el id_token salga con el `aud` del cliente
+        // Web, que es el único que el backend conoce.
+        clientId: kIsWeb ? AppConfig.googleWebClientId : null,
+        serverClientId: kIsWeb ? null : AppConfig.googleWebClientId,
+      );
+    } catch (e) {
+      _inicializacion = null;
+      rethrow;
+    }
   }
 }
 

@@ -1,0 +1,4 @@
+node_modules/
+
+# Temporales del script: la captura y el volcado que deja al fallar.
+_*

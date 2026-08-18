@@ -15,7 +15,10 @@ export class PrismaExceptionFilter implements ExceptionFilter {
 
     const { status, mensaje } = this.traducir(exception);
 
-    if (status === HttpStatus.INTERNAL_SERVER_ERROR) {
+    // Se registra todo lo que no sea un 4xx esperable: un 500 o un 503 siempre
+    // merecen quedar en el log con su código de Prisma, que es lo único que
+    // permite diagnosticar después.
+    if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
       this.logger.error(`Prisma ${exception.code}: ${exception.message}`);
     }
 
@@ -47,6 +50,20 @@ export class PrismaExceptionFilter implements ExceptionFilter {
         return {
           status: HttpStatus.NOT_FOUND,
           mensaje: 'El registro solicitado no existe',
+        };
+      case 'P2024':
+        // Pool de conexiones agotado. Se responde 503 y no 500 porque es
+        // transitorio: reintentar tiene sentido. Un 500 haría que la app lo
+        // tratara como un error de programación y no lo reintentara.
+        return {
+          status: HttpStatus.SERVICE_UNAVAILABLE,
+          mensaje: 'El servidor está saturado. Probá de nuevo en unos segundos.',
+        };
+      case 'P1001':
+      case 'P1002':
+        return {
+          status: HttpStatus.SERVICE_UNAVAILABLE,
+          mensaje: 'No se pudo conectar con la base de datos. Reintentá en unos segundos.',
         };
       default:
         return {
