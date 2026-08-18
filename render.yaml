@@ -36,10 +36,19 @@ services:
     # `npm ci` y no `npm install`: instala exactamente lo del package-lock, así
     # producción corre las mismas versiones que se probaron.
     #
+    # `--include=dev` no es opcional acá. Render aplica NODE_ENV=production
+    # también durante el build, y con esa variable npm omite las
+    # devDependencies. Pero el build las necesita: `nest` y `prisma` viven ahí.
+    # Sin esto, npm instala solo lo de producción y el build muere con
+    # "exited with status 127" —command not found— sin decir qué comando faltó.
+    #
+    # Nada de esto llega al contenedor final: se compila a dist/ y el arranque
+    # es `node dist/main`, que no toca ninguna dependencia de desarrollo.
+    #
     # `migrate deploy` y no `migrate dev`: aplica las migraciones que existen
     # sin generar ninguna nueva ni pedir confirmación. Usa DIRECT_URL, porque
     # el pooler de Neon no soporta migraciones.
-    buildCommand: npm ci && npm run build && npx prisma migrate deploy
+    buildCommand: npm ci --include=dev && npm run build && npx prisma migrate deploy
     startCommand: npm run start:prod
 
     # Render reinicia el servicio si esto deja de responder. El endpoint ya
