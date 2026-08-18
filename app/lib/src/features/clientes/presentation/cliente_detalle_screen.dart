@@ -12,6 +12,7 @@ import '../../movimientos/presentation/widgets/form_movimiento_sheet.dart';
 import '../../movimientos/presentation/widgets/lista_movimientos.dart';
 import '../application/clientes_controller.dart';
 import '../domain/cliente.dart';
+import '../../metodos_pago/presentation/widgets/compartir_metodo_pago.dart';
 import '../../perfil/application/perfil_controller.dart';
 import 'widgets/boton_whatsapp.dart';
 import 'widgets/form_cliente_sheet.dart';
@@ -205,6 +206,25 @@ class _Detalle extends ConsumerWidget {
           ),
         ),
         if (cliente.saldoActual > 0) ...[
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: () => mostrarCompartirMetodoPago(
+              context,
+              ref,
+              nombreCliente: cliente.nombre,
+              telefonoCliente: cliente.telefono,
+              nombreDespensa:
+                  ref
+                      .watch(perfilControllerProvider)
+                      .value
+                      ?.despensa
+                      .nombreComercial ??
+                  'la despensa',
+              saldo: cliente.saldoActual,
+            ),
+            icon: const Icon(Icons.account_balance_outlined),
+            label: const Text('Pasarle cómo pagarme'),
+          ),
           const SizedBox(height: 8),
           BotonWhatsApp(
             telefono: cliente.telefono,

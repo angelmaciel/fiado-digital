@@ -15,7 +15,7 @@ npm run start:dev
 
 La API queda en `http://localhost:3000/api`.
 
-## Endpoints (Sprint 1)
+## Endpoints
 
 | Método | Ruta | Auth | Qué hace |
 | --- | --- | --- | --- |
@@ -42,6 +42,15 @@ La API queda en `http://localhost:3000/api`.
 | `GET` | `/api/clientes/:id` | Bearer + despensa | **HU-02** detalle |
 | `PATCH` | `/api/clientes/:id` | Bearer + despensa | **HU-02** edición |
 | `DELETE` | `/api/clientes/:id` | Bearer + despensa | **HU-02** baja (solo con saldo 0) |
+| `GET` | `/api/clientes/en-mora` | Bearer + despensa | **HU-06** quiénes deben y hace cuánto no pagan |
+| `POST` | `/api/clientes/:id/movimientos` | Bearer + despensa | **HU-03/04** registrar fiado o pago |
+| `GET` | `/api/clientes/:id/movimientos` | Bearer + despensa | **HU-05** historial con el saldo |
+| `POST` | `/api/movimientos/:id/reversa` | Bearer + despensa | **HU-10** corregir con un ajuste |
+| `GET` | `/api/despensas/mia/resumen` | Bearer + despensa | Métricas del negocio |
+| `GET` | `/api/metodos-pago` | Bearer + despensa | **HU-11** listado |
+| `POST` | `/api/metodos-pago` | Bearer + despensa | **HU-11** alta |
+| `PATCH` | `/api/metodos-pago/:id` | Bearer + despensa | **HU-11** edición |
+| `DELETE` | `/api/metodos-pago/:id` | Bearer + despensa | **HU-11** baja |
 
 ## Flujo de autenticación
 

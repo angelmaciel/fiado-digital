@@ -10,6 +10,7 @@ import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter'
 import { PrismaModule } from './common/prisma/prisma.module';
 import { DespensasModule } from './despensas/despensas.module';
 import { HealthController } from './health.controller';
+import { MetodosPagoModule } from './metodos-pago/metodos-pago.module';
 import { MovimientosModule } from './movimientos/movimientos.module';
 import { UsuariosModule } from './usuarios/usuarios.module';
 
@@ -27,7 +28,7 @@ import { UsuariosModule } from './usuarios/usuarios.module';
     DespensasModule,
     ClientesModule,
     MovimientosModule,
-    // Sprint 4: MetodosPagoModule (HU-11, HU-12)
+    MetodosPagoModule,
   ],
   controllers: [HealthController],
   providers: [
