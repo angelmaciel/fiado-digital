@@ -27,6 +27,44 @@ de la PC en la red local:
 --dart-define=API_BASE_URL=http://192.168.1.X:3000/api
 ```
 
+### Probar desde un celular en la misma red
+
+Sirve para revisar la interfaz en una pantalla real, que es donde aparecen los
+problemas de espacio y de teclado que en el escritorio no se ven.
+
+Hacen falta tres cosas, y omitir cualquiera de ellas falla de una forma
+distinta:
+
+```bash
+# 1. La app tiene que escuchar en todas las interfaces.
+#    Con --web-hostname=localhost solo responde a la propia PC y el celular
+#    recibe "no se pudo conectar al servidor".
+#
+# 2. API_BASE_URL tiene que apuntar a la IP de la PC. Sin esto la app pide los
+#    datos a "localhost", que desde el celular es el propio celular.
+flutter run -d web-server --web-port=5000 --web-hostname=0.0.0.0 \
+  --dart-define=API_BASE_URL=http://192.168.0.13:3000/api \
+  --dart-define=GOOGLE_WEB_CLIENT_ID=TU_CLIENT_ID_WEB.apps.googleusercontent.com
+```
+
+```bash
+# 3. En backend/.env, agregar ese origen. La app servida desde otra dirección
+#    es un origen distinto para el navegador, y sin esto bloquea cada llamada.
+CORS_ORIGINS=http://localhost:5000,http://192.168.0.13:5000
+```
+
+Para averiguar la IP de la PC: `ipconfig` en Windows, o
+`Get-NetIPAddress -AddressFamily IPv4` en PowerShell. El celular tiene que estar
+en la **misma red Wi-Fi**, no en datos móviles.
+
+Dos limitaciones conocidas de este entorno, que no son defectos:
+
+- **El botón de Google no funciona.** Ese origen no está autorizado en Google
+  Cloud Console. Se prueba entrando con correo y contraseña.
+- **La sesión se pierde al recargar la página.** El almacenamiento seguro del
+  navegador necesita `crypto.subtle`, que solo existe en contexto seguro (HTTPS
+  o `localhost`). La app lo detecta y guarda la sesión en memoria.
+
 ## Compilar para Android
 
 ```bash
