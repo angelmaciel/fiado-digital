@@ -18,6 +18,14 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # of the product and file versions while build-number is used as the build suffix.
 version: 1.0.0+1
 
+# HU-07: se empaqueta la variante de SQLite con cifrado en vez de la comun.
+# Solo aplica a las plataformas nativas (Android y Windows); en Web la app
+# trabaja siempre en linea.
+hooks:
+  user_defines:
+    sqlite3:
+      source: sqlcipher
+
 environment:
   sdk: ^3.13.0
 
@@ -42,6 +50,12 @@ dependencies:
   intl: ^0.20.3
   url_launcher: ^6.3.2
   google_sign_in_web: ^1.1.3
+  drift: ^2.34.3
+  drift_flutter: ^0.3.1
+  connectivity_plus: ^7.3.1
+  uuid: ^4.6.0
+  path: ^1.9.1
+  path_provider: ^2.1.6
 
 dev_dependencies:
   flutter_test:
@@ -53,6 +67,8 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  drift_dev: ^2.34.5
+  build_runner: ^2.16.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

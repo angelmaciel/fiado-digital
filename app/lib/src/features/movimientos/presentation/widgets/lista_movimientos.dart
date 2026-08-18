@@ -205,17 +205,36 @@ class _FilaMovimiento extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (movimiento.detalle != null) Text(movimiento.detalle!),
-            Text(
-              '${_fecha(movimiento.createdAt)} · ${movimiento.registradoPor}'
-              '${anulado ? " · corregido" : ""}',
-              style: tema.textTheme.bodySmall?.copyWith(
-                color: tema.colorScheme.onSurfaceVariant,
-              ),
+            Row(
+              children: [
+                if (!movimiento.sincronizado) ...[
+                  Icon(
+                    Icons.schedule_send,
+                    size: 13,
+                    color: tema.colorScheme.tertiary,
+                  ),
+                  const SizedBox(width: 4),
+                ],
+                Flexible(
+                  child: Text(
+                    movimiento.sincronizado
+                        ? '${_fecha(movimiento.createdAt)} · '
+                              '${movimiento.registradoPor}'
+                              '${anulado ? " · corregido" : ""}'
+                        : '${_fecha(movimiento.createdAt)} · sin subir',
+                    style: tema.textTheme.bodySmall?.copyWith(
+                      color: movimiento.sincronizado
+                          ? tema.colorScheme.onSurfaceVariant
+                          : tema.colorScheme.tertiary,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
         // Un ajuste no se corrige, y uno ya corregido tampoco.
-        trailing: (anulado || movimiento.esAjuste)
+        trailing: (anulado || movimiento.esAjuste || !movimiento.sincronizado)
             ? null
             : IconButton(
                 tooltip: 'Corregir',

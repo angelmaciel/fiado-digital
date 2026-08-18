@@ -115,6 +115,21 @@ hace tres meses, un fiado corregido con su ajuste, y clientes al día.
 `--limpiar` borra **solo** los clientes sembrados, por nombre: no toca los
 reales.
 
+## Modo sin conexión (HU-07)
+
+Registrar un movimiento es **idempotente**: la app genera el UUID en el
+dispositivo y lo manda en el body. Si ya existe, el servidor devuelve el que
+tenía en vez de crear otro.
+
+Sin esto, un fiado que se envía y se corta el internet antes de recibir la
+respuesta se duplicaría al reintentar — plata inventada en la cuenta de un
+cliente. Verificado con 4 reintentos seguidos y 5 en paralelo: el saldo sube
+una sola vez.
+
+El body acepta además `registradoEn` con la fecha real del movimiento. Un fiado
+anotado el martes que sube el jueves sigue siendo del martes, así el historial
+y las métricas mensuales no se distorsionan por el momento de la sincronización.
+
 ## Decisiones que conviene recordar
 
 - **Guard global cerrado**: sin `@Public()` un endpoint nuevo nace protegido.

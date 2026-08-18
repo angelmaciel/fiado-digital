@@ -38,11 +38,18 @@ class MovimientosApi {
 
   /// HU-03 y HU-04. `tipo` solo admite FIADO o PAGO: los ajustes nacen de
   /// revertir, nunca de crearse directo.
+  ///
+  /// `id` y `registradoEn` los usa la sincronización (HU-07): mandar el id que
+  /// se generó en el dispositivo hace que reintentar sea seguro, y mandar la
+  /// fecha real hace que un fiado del martes que sube el jueves siga siendo del
+  /// martes en el historial.
   Future<ResultadoMovimiento> registrar({
     required String clienteId,
     required TipoMovimiento tipo,
     required int monto,
     String? detalle,
+    String? id,
+    DateTime? registradoEn,
   }) async {
     assert(tipo != TipoMovimiento.ajuste, 'Un ajuste se crea revirtiendo');
 
@@ -50,9 +57,11 @@ class MovimientosApi {
       final r = await _dio.post<Map<String, dynamic>>(
         '/clientes/$clienteId/movimientos',
         data: {
+          'id': ?id,
           'tipo': tipo == TipoMovimiento.pago ? 'PAGO' : 'FIADO',
           'monto': monto,
           'detalle': ?detalle,
+          'registradoEn': ?registradoEn?.toUtc().toIso8601String(),
         },
       );
       return _leerResultado(r.data!);

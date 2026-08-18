@@ -4,6 +4,7 @@ import {
   IsInt,
   IsOptional,
   IsString,
+  IsUUID,
   Max,
   MaxLength,
   Min,
@@ -16,6 +17,19 @@ export enum TipoMovimientoCreable {
 }
 
 export class CrearMovimientoDto {
+  /**
+   * Identificador generado por la app (HU-07).
+   *
+   * Existe para que registrar sea idempotente. Sin esto, un fiado que se manda,
+   * se corta el internet antes de recibir la respuesta y se reintenta, se
+   * cargaria dos veces: plata inventada en la cuenta del cliente.
+   *
+   * Si se omite, lo genera la base.
+   */
+  @IsOptional()
+  @IsUUID(4, { message: 'El id del movimiento debe ser un UUID' })
+  id?: string;
+
   @IsEnum(TipoMovimientoCreable, { message: 'El tipo debe ser FIADO o PAGO' })
   tipo: TipoMovimientoCreable;
 
@@ -38,4 +52,14 @@ export class CrearMovimientoDto {
   @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @MaxLength(255, { message: 'El detalle no puede pasar de 255 caracteres' })
   detalle?: string;
+
+  /**
+   * Cuando ocurrio de verdad, si se registro sin conexion (HU-07). El servidor
+   * respeta esa fecha en vez de poner la de sincronizacion: un fiado del martes
+   * que sube el jueves sigue siendo del martes, y el historial y las metricas
+   * mensuales tienen que reflejarlo.
+   */
+  @IsOptional()
+  @IsString()
+  registradoEn?: string;
 }
