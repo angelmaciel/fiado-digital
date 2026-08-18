@@ -186,6 +186,7 @@ class MovimientosController extends AsyncNotifier<EstadoMovimientos> {
     required TipoMovimiento tipo,
     required int monto,
     String? detalle,
+    bool forzarLimite = false,
   }) async {
     final id = const Uuid().v4();
     final ahora = DateTime.now();
@@ -199,6 +200,7 @@ class MovimientosController extends AsyncNotifier<EstadoMovimientos> {
             monto: monto,
             detalle: detalle,
             id: id,
+            forzarLimite: forzarLimite,
           );
 
       _refrescarPantallasRelacionadas();

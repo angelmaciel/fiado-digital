@@ -21,6 +21,12 @@ import type {
   PaginaMovimientosDto,
 } from './dto/listar-movimientos.dto';
 
+/**
+ * Marca que la app usa para distinguir "se paso del limite" de cualquier otro
+ * conflicto, y ofrecerle al dueno confirmar en vez de mostrarle un error seco.
+ */
+export const CODIGO_LIMITE_EXCEDIDO = 'LIMITE_EXCEDIDO';
+
 /** Resultado de registrar un movimiento: el asiento y el saldo que dejó. */
 export interface MovimientoRegistrado {
   movimiento: Movimiento;
@@ -74,6 +80,35 @@ export class MovimientosService {
 
     if (!cliente) {
       throw new NotFoundException('Cliente no encontrado');
+    }
+
+    // HU-08: el limite se controla antes de escribir nada.
+    //
+    // Solo aplica a los fiados: un pago siempre baja la deuda, y bloquearlo
+    // seria absurdo. Tampoco se controla al forzar ni al sincronizar algo que
+    // se anoto sin conexion, porque en ese momento la venta ya ocurrio y
+    // rechazarla dejaria al saldo del dispositivo distinto del servidor.
+    if (
+      tipo === TipoMovimiento.FIADO &&
+      !dto.forzarLimite &&
+      !dto.registradoEn &&
+      cliente.limiteCredito !== null
+    ) {
+      const saldoResultante = cliente.saldoActual + dto.monto;
+
+      if (saldoResultante > cliente.limiteCredito) {
+        throw new ConflictException({
+          statusCode: 409,
+          message:
+            `${cliente.nombre} quedaria en ${saldoResultante} Gs y su limite ` +
+            `es de ${cliente.limiteCredito} Gs.`,
+          codigo: CODIGO_LIMITE_EXCEDIDO,
+          limiteCredito: cliente.limiteCredito,
+          saldoActual: cliente.saldoActual,
+          saldoResultante,
+          excesoDe: saldoResultante - cliente.limiteCredito,
+        });
+      }
     }
 
     // Idempotencia (HU-07): si la app ya habia mandado este movimiento y no

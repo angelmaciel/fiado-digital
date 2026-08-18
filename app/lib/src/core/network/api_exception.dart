@@ -8,14 +8,27 @@ import 'package:dio/dio.dart';
 /// el correo: la app la usa para saltar a la pantalla del código.
 const String kCodigoEmailNoVerificado = 'EMAIL_NO_VERIFICADO';
 
+/// El fiado dejaría al cliente por encima de su límite de crédito (HU-08).
+/// No es un error definitivo: el dueño puede confirmar y reenviar.
+const String kCodigoLimiteExcedido = 'LIMITE_EXCEDIDO';
+
 class ApiException implements Exception {
-  const ApiException(this.mensaje, {this.statusCode, this.codigo});
+  const ApiException(
+    this.mensaje, {
+    this.statusCode,
+    this.codigo,
+    this.datos = const {},
+  });
 
   final String mensaje;
   final int? statusCode;
 
   /// Código de negocio opcional, cuando el mensaje no alcanza para decidir.
   final String? codigo;
+
+  /// Campos extra que manda el backend junto al error. Por ejemplo, cuánto se
+  /// pasa del límite, para poder decírselo al usuario con el número exacto.
+  final Map<String, dynamic> datos;
 
   /// El servidor nunca contestó: no hay red, se cayó la conexión o expiró el
   /// tiempo de espera. Se distingue de un error de negocio porque un fiado que
@@ -26,6 +39,12 @@ class ApiException implements Exception {
   bool get esNoAutorizado => statusCode == 401;
   bool get esConflicto => statusCode == 409;
   bool get requiereVerificarEmail => codigo == kCodigoEmailNoVerificado;
+  bool get excedeLimiteDeCredito => codigo == kCodigoLimiteExcedido;
+
+  /// Por cuánto se pasa del límite, en guaraníes.
+  int get excesoDeLimite => datos['excesoDe'] as int? ?? 0;
+  int get saldoResultante => datos['saldoResultante'] as int? ?? 0;
+  int get limiteDelCliente => datos['limiteCredito'] as int? ?? 0;
 
   factory ApiException.desdeDio(DioException e) {
     switch (e.type) {
