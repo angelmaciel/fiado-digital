@@ -839,6 +839,8 @@ saldo: 45.000 → 75.000   (exacto)</code></pre>
               <tr><td class="clave">Eligio Franco</td><td class="num">85</td><td><span class="marca ok">Sí</span> nunca pagó nada</td></tr>
               <tr><td class="clave">Nimia Ovelar</td><td class="num">70</td><td><span class="marca ok">Sí</span></td></tr>
               <tr><td class="clave">Zulma Escobar</td><td class="num">42</td><td><span class="marca ok">Sí</span> <strong>tiene fiados de hace 2 días</strong></td></tr>
+              <tr><td class="clave">Serafina Paredes</td><td class="num">38</td><td><span class="marca ok">Sí</span> dejó de pagar y siguió comprando</td></tr>
+              <tr><td class="clave">Celestina Ojeda</td><td class="num">33</td><td><span class="marca ok">Sí</span> recién cruza el umbral de 30</td></tr>
             </tbody>
           </table>
         </div>
@@ -857,14 +859,14 @@ saldo: 45.000 → 75.000   (exacto)</code></pre>
           servicio. <strong>Coinciden en los seis valores</strong>:
         </p>
 
-<pre><code>este mes    fiado 651.000   cobrado 362.000   variación +289.000
-mes pasado  fiado 708.000   cobrado 443.000   variación +265.000
-tasa de recuperación: 56%   (mes pasado 63%)</code></pre>
+<pre><code>este mes    fiado 971.000   cobrado 433.000   variación +538.000
+mes pasado  fiado 1.104.000 cobrado 853.000   variación +251.000
+tasa de recuperación: 45%   (mes pasado 77%)</code></pre>
 
         <p>
           El caso interesante: entre los movimientos del mes hay un fiado de
           150.000 cargado por error y su corrección. Los dos caen en el mismo
-          mes y se cancelan, por eso el total dice 651.000 y no 801.000.
+          mes y se cancelan, y por eso no aparecen inflando lo fiado.
         </p>
 
         <h3 id="pagos">3.7 Métodos de pago (HU-11, HU-12)</h3>
@@ -889,7 +891,7 @@ tasa de recuperación: 56%   (mes pasado 63%)</code></pre>
         <h2><span class="n">Sección 4</span>Recorrido por la app</h2>
 
         <p>
-          Las capturas salen de la cuenta de demostración, con 14 clientes y 55
+          Las capturas salen de la cuenta de demostración, con 24 clientes y 98
           movimientos repartidos en 90 días. Están tomadas a 390 × 844
           píxeles, que es un celular de gama media: es la pantalla donde la app
           se usa de verdad, y donde aparecen los problemas de espacio que en el
@@ -1086,7 +1088,7 @@ flutter run -d web-server --web-port=5000 --web-hostname=0.0.0.0 \
               <tr><td><code>GET /api/clientes</code> sin token</td><td><span class="marca no">401</span> cerrado por defecto</td></tr>
               <tr><td>Login de la cuenta de demostración, con el <code>Origin</code> de la web</td><td><span class="marca ok">200</span> sesión emitida</td></tr>
               <tr><td>Petición desde un origen ajeno</td><td><span class="marca no">Rechazada</span> sin cabecera de CORS</td></tr>
-              <tr><td>Datos visibles con esa sesión</td><td>14 clientes, 3 atrasados, 1.077.000 Gs</td></tr>
+              <tr><td>Datos visibles con esa sesión</td><td>24 clientes, 5 atrasados, 1.500.000 Gs</td></tr>
               <tr><td><code>redirect_uri</code> que emite la API</td><td>Aceptado por Google — devuelve su pantalla de acceso, no <code>redirect_uri_mismatch</code></td></tr>
               <tr><td>Cabeceras de <code>helmet</code></td><td>HSTS, <code>nosniff</code> y <code>X-Frame-Options</code> presentes</td></tr>
               <tr><td>Envío real de correo</td><td><span class="marca ok">200</span> en 1,3 s — código de recuperación entregado</td></tr>
