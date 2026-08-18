@@ -454,6 +454,7 @@
       <span><b>Actualizado</b> 18 de agosto de 2026</span>
       <span><b>Rama</b> develop</span>
       <span><b>Alcance</b> HU-01 a HU-12</span>
+      <span><b>En línea</b> fiado-digital-web.onrender.com</span>
       <span><b>Crece con el proyecto</b> cada historia nueva agrega su sección</span>
     </div>
   </header>
@@ -492,10 +493,11 @@
             <li><a href="#windows">Windows</a></li>
           </ol>
         </li>
-        <li><a href="#android"><span class="n">6</span><span>Compilación en Android</span></a></li>
-        <li><a href="#capturas"><span class="n">7</span><span>Cómo se sacan las capturas</span></a></li>
-        <li><a href="#defectos"><span class="n">8</span><span>Defectos encontrados</span></a></li>
-        <li><a href="#agregar"><span class="n">9</span><span>Cómo agregar pruebas</span></a></li>
+        <li><a href="#produccion"><span class="n">6</span><span>Verificación en producción</span></a></li>
+        <li><a href="#android"><span class="n">7</span><span>Compilación en Android</span></a></li>
+        <li><a href="#capturas"><span class="n">8</span><span>Cómo se sacan las capturas</span></a></li>
+        <li><a href="#defectos"><span class="n">9</span><span>Defectos encontrados</span></a></li>
+        <li><a href="#agregar"><span class="n">10</span><span>Cómo agregar pruebas</span></a></li>
       </ol>
     </nav>
 
@@ -992,7 +994,7 @@ tasa de recuperación: 56%   (mes pasado 63%)</code></pre>
           sirviendo la app desde la PC de desarrollo.
           <strong>Encontró tres defectos que no aparecían en el navegador de
           escritorio</strong> — los números 10, 11 y 12 de la
-          <a href="#defectos">sección 8</a>.
+          <a href="#defectos">sección 9</a>.
         </p>
 
         <p>Para reproducir el entorno:</p>
@@ -1063,9 +1065,98 @@ flutter run -d web-server --web-port=5000 --web-hostname=0.0.0.0 \
         </div>
       </section>
 
+
+      <!-- ============================================================ -->
+      <section id="produccion">
+        <h2><span class="n">Sección 6</span>Verificación en producción</h2>
+
+        <p>
+          El sistema está desplegado y es público:
+          <a href="https://fiado-digital-web.onrender.com">fiado-digital-web.onrender.com</a>,
+          con la API en Render y la base en Neon. Lo que sigue se ejecutó
+          <strong>contra el sistema desplegado</strong>, no contra un entorno
+          local.
+        </p>
+
+        <div class="tabla">
+          <table>
+            <thead><tr><th>Caso</th><th>Resultado</th></tr></thead>
+            <tbody>
+              <tr><td><code>GET /api/health</code></td><td><span class="marca ok">200</span> con <code>db: ok</code>, en 0,66 s</td></tr>
+              <tr><td><code>GET /api/clientes</code> sin token</td><td><span class="marca no">401</span> cerrado por defecto</td></tr>
+              <tr><td>Login de la cuenta de demostración, con el <code>Origin</code> de la web</td><td><span class="marca ok">200</span> sesión emitida</td></tr>
+              <tr><td>Petición desde un origen ajeno</td><td><span class="marca no">Rechazada</span> sin cabecera de CORS</td></tr>
+              <tr><td>Datos visibles con esa sesión</td><td>14 clientes, 3 atrasados, 1.077.000 Gs</td></tr>
+              <tr><td><code>redirect_uri</code> que emite la API</td><td>Aceptado por Google — devuelve su pantalla de acceso, no <code>redirect_uri_mismatch</code></td></tr>
+              <tr><td>Cabeceras de <code>helmet</code></td><td>HSTS, <code>nosniff</code> y <code>X-Frame-Options</code> presentes</td></tr>
+              <tr><td>Envío real de correo</td><td><span class="marca ok">200</span> en 1,3 s — código de recuperación entregado</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="nota">
+          <span class="rotulo">Cómo se comprobó el correo sin leer el log</span>
+          <p>
+            El envío no está envuelto en <code>try/catch</code>: si el proveedor
+            falla, la petición devuelve 500. Así que un
+            <code>POST /api/auth/recuperar-password</code> que responde 200
+            <strong>en 1,3 segundos</strong> alcanza como prueba: un puerto
+            bloqueado habría tardado los treinta segundos del timeout antes de
+            fallar.
+          </p>
+        </div>
+
+        <h3>Lo que se rompió al desplegar</h3>
+
+        <p>
+          Siete problemas, y <strong>ninguno era un error de código</strong>:
+          el mismo commit que anda en desarrollo andaba en producción. Fueron
+          todos de configuración, y valen la pena porque tres de ellos no dan
+          ningún mensaje que apunte a la causa.
+        </p>
+
+        <div class="tabla">
+          <table>
+            <thead><tr><th class="orden">#</th><th>Síntoma</th><th>Causa</th></tr></thead>
+            <tbody>
+              <tr><td class="orden">1</td><td>“Blueprint file render.yaml not found on main branch”</td><td>El archivo estaba en <code>develop</code></td></tr>
+              <tr><td class="orden">2</td><td>“no such plan free for service type web”</td><td>Un sitio estático no lleva <code>plan</code>. Un campo de más rechaza el blueprint entero</td></tr>
+              <tr><td class="orden">3</td><td><strong>“Exited with status 127”</strong></td><td><code>NODE_ENV=production</code> hace que npm omita las devDependencies, y el build necesita <code>nest</code> y <code>prisma</code>, que viven ahí</td></tr>
+              <tr><td class="orden">4</td><td>La API contestaba <code>Not Found</code> a todo</td><td>Ese hostname era de otro proyecto. Los dominios de Render son globales y por orden de llegada</td></tr>
+              <tr><td class="orden">5</td><td><code>redirect_uri_mismatch</code></td><td>El nombre de la variable pegado adentro del valor</td></tr>
+              <tr><td class="orden">6</td><td><strong>Seguía fallando con el valor ya corregido</strong></td><td>Un salto de línea invisible al final: la URL terminaba en <code>%0A</code></td></tr>
+              <tr><td class="orden">7</td><td><strong>La app le hablaba a la API equivocada</strong></td><td>Los <code>--dart-define</code> se hornean en el build: cambiar la variable no alcanza, hay que recompilar</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>
+          El 3 dice “status 127” sin decir qué comando faltó. El 6 muestra una
+          URL que a simple vista es idéntica a la registrada. Y el 7
+          <strong>no falla en ningún lado</strong>: la app le habla al servidor
+          de otra persona, y todo parece andar hasta que no anda.
+        </p>
+
+        <div class="nota roja">
+          <span class="rotulo">El correo no sale por donde uno cree</span>
+          <p>
+            El plan gratuito de Render <strong>bloquea el SMTP saliente</strong>
+            por los puertos 25, 465 y 587. La configuración de Gmail que anda en
+            desarrollo falla en producción con <code>Connection timeout</code> —
+            un timeout, no un rechazo de credenciales, porque el paquete nunca
+            sale del servidor.
+          </p>
+          <p>
+            No se arregla cambiando de proveedor: todos usan esos puertos. Se
+            arregla con uno que ofrezca el <strong>puerto 2525</strong>, que sí
+            pasa. El paso a paso está en
+            <a href="despliegue.md">docs/despliegue.md</a>.
+          </p>
+        </div>
+      </section>
       <!-- ============================================================ -->
       <section id="android">
-        <h2><span class="n">Sección 6</span>Compilación en Android</h2>
+        <h2><span class="n">Sección 7</span>Compilación en Android</h2>
 
         <p>
           El APK de depuración compila. Eso confirma que <strong>SQLCipher,
@@ -1083,7 +1174,7 @@ flutter run -d web-server --web-port=5000 --web-hostname=0.0.0.0 \
 
       <!-- ============================================================ -->
       <section id="capturas">
-        <h2><span class="n">Sección 7</span>Cómo se sacan las capturas</h2>
+        <h2><span class="n">Sección 8</span>Cómo se sacan las capturas</h2>
 
         <p>
           Las once capturas de la <a href="#recorrido">sección 4</a> no se
@@ -1147,7 +1238,7 @@ cd tools/capturas &amp;&amp; npm run capturar     # las once capturas, ~90 segun
 
       <!-- ============================================================ -->
       <section id="defectos">
-        <h2><span class="n">Sección 8</span>Defectos encontrados</h2>
+        <h2><span class="n">Sección 9</span>Defectos encontrados</h2>
 
         <p>
           Ordenados por cuándo aparecieron. Se listan porque el tipo de defecto
@@ -1232,7 +1323,7 @@ cd tools/capturas &amp;&amp; npm run capturar     # las once capturas, ~90 segun
 
       <!-- ============================================================ -->
       <section id="agregar">
-        <h2><span class="n">Sección 9</span>Cómo agregar pruebas</h2>
+        <h2><span class="n">Sección 10</span>Cómo agregar pruebas</h2>
 
         <h3>Backend</h3>
 
