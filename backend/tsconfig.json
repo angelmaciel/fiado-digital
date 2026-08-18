@@ -20,6 +20,7 @@
     // nada porque cree que dist/ ya está al día.
     "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo",
     "skipLibCheck": true,
+    "isolatedModules": true,
     "strict": true,
     "strictNullChecks": true,
     "strictPropertyInitialization": false,

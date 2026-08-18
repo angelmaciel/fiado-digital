@@ -34,6 +34,9 @@ jobs:
       - name: Verificar tipos
         run: npx tsc --noEmit -p tsconfig.build.json
 
+      - name: Tests
+        run: npm test
+
       - name: Compilar
         run: npm run build
 

@@ -139,6 +139,30 @@ El body acepta además `registradoEn` con la fecha real del movimiento. Un fiado
 anotado el martes que sube el jueves sigue siendo del martes, así el historial
 y las métricas mensuales no se distorsionan por el momento de la sincronización.
 
+## Tests
+
+```bash
+npm test          # una corrida
+npm run test:cov  # con cobertura
+```
+
+Son pruebas unitarias con Prisma simulado, no contra la base real: corren en
+segundos, no necesitan PostgreSQL en la CI y no dependen del estado de los
+datos. Cubren la lógica donde un error cuesta plata:
+
+| Qué | Por qué |
+| --- | --- |
+| `PasswordService` | Es lo único entre la cuenta y quien adivine el correo |
+| `CodigosService` | Un código de 6 dígitos es débil: lo protegen el vencimiento, el uso único y el límite de intentos |
+| `MovimientosService` | Decide cuánta plata debe cada cliente |
+| `DespensasService.resumen` | Un error acá no rompe nada visible: le miente al despensero |
+| `ClientesService.listarEnMora` | Fija por test la definición de mora, que fue una decisión discutible |
+
+Lo que estas pruebas **no** cubren, a propósito: las migraciones, las
+restricciones de unicidad de la base y la concurrencia real. Eso necesita
+PostgreSQL de verdad y se verificó a mano (30 fiados en paralelo al mismo
+cliente, y reintentos del mismo movimiento).
+
 ## Decisiones que conviene recordar
 
 - **Guard global cerrado**: sin `@Public()` un endpoint nuevo nace protegido.

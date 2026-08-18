@@ -1,5 +1,14 @@
 import { Type, plainToInstance } from 'class-transformer';
-import { IsEnum, IsInt, IsOptional, IsString, Max, Min, validateSync } from 'class-validator';
+import {
+  IsEnum,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+  validateSync,
+} from 'class-validator';
 
 export enum Entorno {
   Development = 'development',
@@ -71,6 +80,38 @@ class VariablesDeEntorno {
   @IsOptional()
   @IsString()
   OAUTH_SUCCESS_REDIRECT_URL?: string;
+
+  // --- Envio de correo -------------------------------------------------------
+  // 'consola' (por defecto) imprime el codigo en el log; 'smtp' lo manda.
+  // Las variables SMTP_* solo hacen falta con 'smtp', y el servicio las exige
+  // con getOrThrow al construirse: si faltan, el servidor no arranca en vez de
+  // fallar recien cuando alguien intenta registrarse.
+  @IsOptional()
+  @IsIn(['consola', 'smtp'])
+  EMAIL_PROVIDER?: string;
+
+  @IsOptional()
+  @IsString()
+  SMTP_HOST?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(65535)
+  SMTP_PORT?: number;
+
+  @IsOptional()
+  @IsString()
+  SMTP_USER?: string;
+
+  @IsOptional()
+  @IsString()
+  SMTP_PASSWORD?: string;
+
+  @IsOptional()
+  @IsString()
+  EMAIL_REMITENTE?: string;
 }
 
 export function validarEntorno(config: Record<string, unknown>): VariablesDeEntorno {
