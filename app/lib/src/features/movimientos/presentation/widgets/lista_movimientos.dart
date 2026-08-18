@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/network/api_exception.dart';
+import '../../../../core/theme/ritmo.dart';
 import '../../../../core/utils/guaranies.dart';
 import '../../application/movimientos_controller.dart';
 import '../../domain/movimiento.dart';
@@ -36,8 +38,18 @@ class ListaMovimientos extends ConsumerWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            for (final movimiento in datos.movimientos)
-              _FilaMovimiento(movimiento: movimiento, clienteId: clienteId),
+            // La clave por id es lo que hace que solo el movimiento recién
+            // registrado se anime. Sin ella, Flutter aparea las filas por
+            // posición: al insertarse una arriba, todas se correrían un lugar
+            // y la que parecería nueva sería la última de la lista.
+            for (final (indice, movimiento) in datos.movimientos.indexed)
+              _FilaMovimiento(movimiento: movimiento, clienteId: clienteId)
+                  .animate(key: ValueKey(movimiento.id))
+                  .fadeIn(
+                    delay: Ritmo.escalon(context, indice),
+                    duration: Ritmo.normal(context),
+                  )
+                  .slideY(begin: .18, end: 0, curve: Curves.easeOut),
             if (datos.hayMas)
               Padding(
                 padding: const EdgeInsets.only(top: 8),

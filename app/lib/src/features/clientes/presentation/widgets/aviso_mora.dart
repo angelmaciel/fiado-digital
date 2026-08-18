@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/theme/ritmo.dart';
 import '../../../../core/utils/guaranies.dart';
 import '../../application/clientes_controller.dart';
 
@@ -69,6 +71,10 @@ class AvisoDeMora extends ConsumerWidget {
           ),
         ),
       ),
-    );
+    )
+        // Entra creciendo apenas, no desde cero: es un aviso, no un anuncio.
+        .animate()
+        .fadeIn(duration: Ritmo.normal(context))
+        .scaleXY(begin: .97, end: 1, curve: Curves.easeOut);
   }
 }

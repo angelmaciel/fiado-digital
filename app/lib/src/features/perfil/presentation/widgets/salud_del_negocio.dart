@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/ritmo.dart';
 import '../../../../core/utils/guaranies.dart';
 import '../../domain/resumen_despensa.dart';
 
@@ -40,8 +41,10 @@ class SaludDelNegocioCard extends StatelessWidget {
                 const SizedBox(height: 6),
                 FittedBox(
                   fit: BoxFit.scaleDown,
-                  child: Text(
-                    formatearGuaranies(resumen.deudaTotal),
+                  child: NumeroQueCuenta(
+                    valor: resumen.deudaTotal,
+                    formato: formatearGuaranies,
+                    desdeCero: true,
                     style: tema.textTheme.displaySmall?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: esquema.onPrimaryContainer,
@@ -251,11 +254,21 @@ class _BarraRecuperacion extends StatelessWidget {
                       borderRadius: BorderRadius.circular(5),
                       child: SizedBox(
                         width: restricciones.maxWidth,
-                        child: LinearProgressIndicator(
-                          value: proporcion,
-                          minHeight: 10,
-                          backgroundColor: tema.colorScheme.surface,
-                          valueColor: AlwaysStoppedAnimation(color),
+                        // La barra crece hasta su valor en vez de aparecer
+                        // llena. Lo que se quiere comunicar es una proporción,
+                        // y verla llenarse dice cuánto falta para el 100%
+                        // mejor que el largo final quieto.
+                        child: TweenAnimationBuilder<double>(
+                          tween: Tween(begin: 0, end: proporcion),
+                          duration: Ritmo.lento(context),
+                          curve: Curves.easeOutCubic,
+                          builder: (context, valor, _) =>
+                              LinearProgressIndicator(
+                                value: valor,
+                                minHeight: 10,
+                                backgroundColor: tema.colorScheme.surface,
+                                valueColor: AlwaysStoppedAnimation(color),
+                              ),
                         ),
                       ),
                     ),

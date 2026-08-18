@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/ritmo.dart';
 import '../../../core/utils/guaranies.dart';
 import '../../movimientos/application/movimientos_controller.dart';
 import '../../movimientos/domain/movimiento.dart';
@@ -170,8 +171,11 @@ class _Detalle extends ConsumerWidget {
               children: [
                 Text('Saldo actual', style: tema.textTheme.labelLarge),
                 const SizedBox(height: 8),
-                Text(
-                  formatearGuaranies(cliente.saldoActual),
+                // El saldo viaja hasta su nuevo valor al fiar o cobrar: ver
+                // el número subir es lo que confirma que la operación entró.
+                NumeroQueCuenta(
+                  valor: cliente.saldoActual,
+                  formato: formatearGuaranies,
                   style: tema.textTheme.displaySmall?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: colorDeSaldo(context, cliente.saldoActual),

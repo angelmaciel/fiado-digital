@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/ritmo.dart';
 import '../../../core/utils/guaranies.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../auth/domain/usuario.dart';
@@ -72,7 +74,14 @@ class PerfilScreen extends ConsumerWidget {
                 usuario: usuario,
                 diasMora: datos.despensa.diasMoraConfig,
               ),
-            ],
+            ]
+                // Las secciones entran una detrás de otra, de arriba abajo.
+                // Es la pantalla con más números de la app, y escalonarlas
+                // guía la lectura en el orden en que conviene leerlas: primero
+                // cuánta plata hay en la calle, después de quién.
+                .animate(interval: Ritmo.escalon(context, 1))
+                .fadeIn(duration: Ritmo.normal(context))
+                .slideY(begin: .08, end: 0, curve: Curves.easeOut),
           ),
         ),
       ),

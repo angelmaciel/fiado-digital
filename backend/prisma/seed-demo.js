@@ -198,6 +198,133 @@ const CLIENTES = [
       [1, P, 45000, 'Abono'],
     ],
   },
+  // --- Segunda tanda -------------------------------------------------------
+  // Se agregaron para que la demo muestre el día a día y no solo los extremos:
+  // compras de 12.000 a 120.000, que es lo que mueve una despensa de barrio.
+  {
+    nombre: 'Epifania Cabrera',
+    telefono: '0982 415 336',
+    limiteCredito: 150000,
+    // Paga puntual todas las semanas y vuelve a fiar. El cliente más común.
+    movimientos: [
+      [58, F, 42000, 'Provista de la semana'],
+      [52, P, 42000, 'Abono'],
+      [30, F, 38000, 'Aceite, arroz y fideos'],
+      [24, P, 38000, 'Abono'],
+      [6, F, 25000, 'Pan, leche y huevos'],
+    ],
+  },
+  {
+    nombre: 'Rubén Villalba',
+    telefono: '0971 208 554',
+    limiteCredito: 200000,
+    // Compra grande una vez al mes y la paga en dos veces, cuando cobra.
+    movimientos: [
+      [67, F, 120000, 'Provista del mes'],
+      [60, P, 60000, 'Primera parte'],
+      [53, P, 60000, 'Resto'],
+      [35, F, 110000, 'Provista del mes'],
+      [28, P, 55000, 'Primera parte'],
+      [20, P, 55000, 'Resto'],
+      [4, F, 95000, 'Provista del mes'],
+    ],
+  },
+  {
+    nombre: 'Celestina Ojeda',
+    telefono: '0985 662 190',
+    limiteCredito: 100000,
+    // Compras chicas casi diarias. Suma de a poco y por eso sorprende.
+    movimientos: [
+      [40, F, 15000, 'Pan y leche'],
+      [37, F, 12000, 'Yerba'],
+      [33, P, 27000, 'Abono'],
+      [18, F, 18000, 'Azúcar y fideos'],
+      [11, F, 14000, 'Pan y huevos'],
+      [3, F, 16000, 'Leche y galletitas'],
+    ],
+  },
+  {
+    nombre: 'Wilfrido Insfrán',
+    telefono: '0961 774 028',
+    limiteCredito: 150000,
+    // Dejó plata a cuenta: "andá descontando de acá". Queda saldo a favor,
+    // que es el único caso de la demo con el saldo en negativo.
+    movimientos: [
+      [50, F, 60000, 'Carbón, carne y hielo'],
+      [45, P, 80000, 'Deja a cuenta para ir descontando'],
+    ],
+  },
+  {
+    nombre: 'Griselda Barrios',
+    telefono: '0994 503 217',
+    limiteCredito: 120000,
+    // Clienta nueva de este mes: alimenta la métrica de crecimiento.
+    movimientos: [
+      [8, F, 35000, 'Provista de la semana'],
+      [2, F, 22000, 'Pan, leche y fideos'],
+    ],
+  },
+  {
+    nombre: 'Teodoro Fretes',
+    telefono: '0976 331 845',
+    limiteCredito: 120000,
+    // No debe nada. Hace falta que existan para que "al día" no sea un cero.
+    movimientos: [
+      [55, F, 48000, 'Provista de la semana'],
+      [48, P, 48000, 'Abono'],
+      [22, F, 52000, 'Provista de la semana'],
+      [15, P, 52000, 'Abono'],
+    ],
+  },
+  {
+    nombre: 'Serafina Paredes',
+    telefono: '0983 129 470',
+    limiteCredito: 150000,
+    // Pagaba, dejó de pagar y siguió comprando: entra en mora aunque su
+    // última compra sea reciente. Es el caso que define cómo se mide la mora.
+    movimientos: [
+      [70, F, 55000, 'Provista del mes'],
+      [62, P, 30000, 'Abono parcial'],
+      [38, P, 25000, 'Abono'],
+      [20, F, 45000, 'Provista de la semana'],
+      [9, F, 28000, 'Yerba, azúcar y jabón'],
+    ],
+  },
+  {
+    nombre: 'Osvaldo Brítez',
+    telefono: '0972 646 083',
+    limiteCredito: 100000,
+    movimientos: [
+      [42, F, 32000, 'Provista de la semana'],
+      [36, P, 32000, 'Abono'],
+      [21, F, 29000, 'Provista de la semana'],
+      [14, P, 29000, 'Abono'],
+      [5, F, 31000, 'Provista de la semana'],
+    ],
+  },
+  {
+    nombre: 'Basilia Cardozo',
+    telefono: '0991 887 512',
+    // Sin límite cargado: el despensero le fía por confianza, sin tope.
+    limiteCredito: null,
+    movimientos: [
+      [64, F, 70000, 'Provista del mes'],
+      [56, P, 40000, 'Abono'],
+      [33, F, 45000, 'Provista de la semana'],
+      [26, P, 50000, 'Abono'],
+      [10, F, 38000, 'Carne y verdura'],
+    ],
+  },
+  {
+    nombre: 'Ceferino Rolón',
+    telefono: '0984 250 691',
+    limiteCredito: 80000,
+    // Recién empieza a fiar, con lo típico del mostrador.
+    movimientos: [
+      [3, F, 19000, 'Cigarrillos y gaseosa'],
+      [1, F, 12000, 'Pan y leche'],
+    ],
+  },
 ];
 
 const NOMBRES = CLIENTES.map((c) => c.nombre);

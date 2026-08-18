@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -6,6 +7,7 @@ import '../../../core/local/widgets/aviso_sin_conexion.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/ritmo.dart';
 import '../../../core/utils/guaranies.dart';
 import '../../auth/application/auth_controller.dart';
 import '../application/clientes_controller.dart';
@@ -25,6 +27,15 @@ class ClientesScreen extends ConsumerStatefulWidget {
 
 class _ClientesScreenState extends ConsumerState<ClientesScreen> {
   final _scrollCtrl = ScrollController();
+
+  /// La entrada escalonada se hace una sola vez.
+  ///
+  /// Sin esto, cada vez que la lista se reconstruye —al escribir en el
+  /// buscador, al bajar y cargar más, al volver del detalle— las filas
+  /// volverían a entrar de a una. Vistoso la primera vez, molesto siempre
+  /// después: el despensero busca a un cliente y tiene que esperar a que el
+  /// nombre termine de aparecer.
+  bool _yaEscalono = false;
 
   @override
   void initState() {
@@ -145,6 +156,14 @@ class _ClientesScreenState extends ConsumerState<ClientesScreen> {
                   return const _ListaVacia();
                 }
 
+                // Se apaga después del primer dibujado con datos: para ese
+                // momento las filas ya arrancaron su animación.
+                if (!_yaEscalono) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) setState(() => _yaEscalono = true);
+                  });
+                }
+
                 // +1 por el aviso de atrasados, que va como primera fila para
                 // que se desplace con la lista en vez de comer alto fijo.
                 final filas = estado.clientes.length + 1;
@@ -172,7 +191,20 @@ class _ClientesScreenState extends ConsumerState<ClientesScreen> {
                           child: Center(child: CircularProgressIndicator()),
                         );
                       }
-                      return _FilaCliente(cliente: estado.clientes[indice - 1]);
+                      final posicion = indice - 1;
+                      final fila = _FilaCliente(
+                        cliente: estado.clientes[posicion],
+                      );
+
+                      if (_yaEscalono) return fila;
+
+                      return fila
+                          .animate()
+                          .fadeIn(
+                            delay: Ritmo.escalon(context, posicion),
+                            duration: Ritmo.normal(context),
+                          )
+                          .slideY(begin: .12, end: 0, curve: Curves.easeOut);
                     },
                   ),
                 );
