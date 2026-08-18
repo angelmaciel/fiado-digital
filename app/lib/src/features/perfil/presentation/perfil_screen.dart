@@ -340,6 +340,13 @@ class _Ajustes extends ConsumerWidget {
                 editarNombreDelUsuario(context, ref, usuario?.nombre ?? ''),
           ),
           ListTile(
+            leading: const Icon(Icons.account_balance_outlined),
+            title: const Text('Cómo me pagan'),
+            subtitle: const Text('Cuentas y billeteras para transferencias'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.go(Rutas.metodosPago),
+          ),
+          ListTile(
             leading: const Icon(Icons.storefront_outlined),
             title: const Text('Datos de la despensa'),
             subtitle: Text('Mora a los $diasMora días'),

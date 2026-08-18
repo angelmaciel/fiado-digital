@@ -37,6 +37,13 @@ enum TipoCodigo {
   RESET_PASSWORD
 }
 
+/// Cómo puede pagarle un cliente al despensero, además de en efectivo.
+enum TipoMetodoPago {
+  TRANSFERENCIA
+  ALIAS
+  BILLETERA_DIGITAL
+}
+
 /// FIADO suma al saldo, PAGO resta, AJUSTE revierte exactamente a otro
 /// movimiento (su efecto es el inverso del que referencia).
 enum TipoMovimiento {
@@ -81,9 +88,10 @@ model Despensa {
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  propietario Usuario   @relation("PropietarioDespensa", fields: [propietarioId], references: [id], onDelete: Restrict)
-  miembros    Usuario[] @relation("MiembrosDespensa")
-  clientes    Cliente[]
+  propietario  Usuario      @relation("PropietarioDespensa", fields: [propietarioId], references: [id], onDelete: Restrict)
+  miembros     Usuario[]    @relation("MiembrosDespensa")
+  clientes     Cliente[]
+  metodosPago  MetodoPago[]
 
   @@index([propietarioId])
   @@map("despensas")
@@ -164,6 +172,36 @@ model CodigoVerificacion {
 
   @@index([usuarioId, tipo])
   @@map("codigos_verificacion")
+}
+
+/// Datos bancarios o de billetera que el despensero comparte con un cliente
+/// que prefiere pagarle por transferencia (HU-11 y HU-12).
+///
+/// No hay ninguna pasarela de pago conectada: la app solo guarda los datos y
+/// los deja listos para copiar o mandar por WhatsApp. El dinero se mueve por
+/// fuera y el despensero registra el pago a mano, como cualquier otro.
+model MetodoPago {
+  id           String          @id @default(uuid()) @db.Uuid
+  despensaId   String          @map("despensa_id") @db.Uuid
+  tipo         TipoMetodoPago
+  /// Banco o cooperativa. Vacío en las billeteras que no son bancarias.
+  banco        String?         @db.VarChar(120)
+  /// A nombre de quién está la cuenta. Es el dato que más mira quien va a
+  /// transferir, para no mandarle plata a un desconocido.
+  titular      String          @db.VarChar(160)
+  alias        String?         @db.VarChar(120)
+  numeroCuenta String?         @map("numero_cuenta") @db.VarChar(60)
+  /// Aclaración libre: "solo hasta las 18h", "avisame cuando transfieras".
+  nota         String?         @db.VarChar(255)
+  /// El que se ofrece primero al compartir.
+  esPrincipal  Boolean         @default(false) @map("es_principal")
+  createdAt    DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  despensa Despensa @relation(fields: [despensaId], references: [id], onDelete: Cascade)
+
+  @@index([despensaId])
+  @@map("metodos_pago")
 }
 
 /// Refresh tokens (30 días). Se guarda únicamente el SHA-256 del token; el valor
