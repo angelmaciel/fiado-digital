@@ -59,13 +59,26 @@ class RecordatorioDeMora {
       ),
     );
 
-    // En Android 13 y posteriores hay que pedir permiso explícito. Si el
-    // usuario lo niega, no se insiste: se queda con el aviso dentro de la app.
     final android = _plugin
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
         >();
-    final concedido = await android?.requestNotificationsPermission() ?? false;
+
+    // Primero se pregunta si YA está concedido, y solo si no lo está se pide.
+    //
+    // El orden importa y acá estaba al revés. `requestNotificationsPermission`
+    // devuelve si el usuario acaba de aceptar, no si el permiso está dado:
+    // cuando ya estaba concedido no hay diálogo que mostrar y contesta que no.
+    // Usar eso como si fuera el estado hacía que el recordatorio se programara
+    // **una sola vez en la vida de la app** —la primera, cuando salió el
+    // diálogo— y después dejara de programarse en silencio, sin error ni aviso.
+    // El despensero veía la notificación un día y nunca más.
+    final yaConcedido = await android?.areNotificationsEnabled() ?? false;
+
+    // Si el usuario lo niega, no se insiste: se queda con el aviso dentro de
+    // la app, que no depende de ningún permiso.
+    final concedido =
+        yaConcedido || (await android?.requestNotificationsPermission() ?? false);
 
     _listo = concedido;
     return concedido;
@@ -152,10 +165,20 @@ final recordatorioDeMoraProvider = Provider<RecordatorioDeMora>((ref) {
     if (lista == null) return;
 
     unawaited(
-      recordatorio.actualizar(
-        cantidadEnMora: lista.datos.length,
-        deudaEnMora: lista.deudaEnMora,
-      ),
+      recordatorio
+          .actualizar(
+            cantidadEnMora: lista.datos.length,
+            deudaEnMora: lista.deudaEnMora,
+          )
+          .catchError((Object error, StackTrace pila) {
+            // Que falle programar el aviso no debe tumbar la pantalla: el
+            // despensero está mirando su lista de clientes y eso tiene que
+            // seguir funcionando. Pero fallar en silencio es peor todavía —
+            // un recordatorio que nunca se programa se ve exactamente igual
+            // que uno que anda, y nadie se entera hasta que un cliente lleva
+            // dos meses sin pagar.
+            debugPrint('No se pudo programar el recordatorio de mora: $error');
+          }),
     );
   }, fireImmediately: true);
 
