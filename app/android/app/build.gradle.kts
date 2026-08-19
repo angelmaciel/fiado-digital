@@ -22,24 +22,22 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
+        // Este identificador es el que Google Cloud Console asocia al cliente
+        // OAuth de Android. Cambiarlo obliga a registrar uno nuevo.
         applicationId = "com.fiadodigital.fiado_digital"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
-        // Uses the version code from pubspec.yaml. When using split APKs, 1000 * ABI_VERSION
-        // is added automatically by Flutter. (https://developer.android.com/studio/build/configure-apk-splits#configure-APK-versions)
-        // You can force using the value of versionCode by specifying the `-P force-version-code-ignoring-abi=true`
-        // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
+            // Se firma con la clave de depuración a propósito: es la huella
+            // SHA-1 registrada en Google Cloud Console, así que el login con
+            // Google funciona también en los APK de release que se reparten a
+            // mano. Publicar en Play Store exige una clave propia, y con ella
+            // hay que registrar un segundo cliente OAuth de Android.
             signingConfig = signingConfigs.getByName("debug")
         }
     }
