@@ -28,10 +28,12 @@ hasta un minuto** mientras el servicio se despierta.
 
 | | | |
 |:---:|:---:|:---:|
-| <img src="docs/capturas/clientes.png" width="230"> | <img src="docs/capturas/cliente-detalle.png" width="230"> | <img src="docs/capturas/fiar.png" width="230"> |
-| Quién te debe y cuánto | Saldo, límite e historial | El saldo resultante, en vivo |
-| <img src="docs/capturas/mora.png" width="230"> | <img src="docs/capturas/historial-correccion.png" width="230"> | <img src="docs/capturas/mi-negocio.png" width="230"> |
-| Atrasados, con los días sin pagar | Un fiado corregido, sin borrar nada | Cuánta plata hay en la calle |
+| <img src="docs/capturas/login.png" width="230"> | <img src="docs/capturas/clientes.png" width="230"> | <img src="docs/capturas/mora.png" width="230"> |
+| Correo y contraseña, o Google | Quién te debe y cuánto | Atrasados, con los días sin pagar |
+| <img src="docs/capturas/cliente-detalle.png" width="230"> | <img src="docs/capturas/fiar.png" width="230"> | <img src="docs/capturas/historial-correccion.png" width="230"> |
+| Saldo, límite e historial | El saldo resultante, en vivo | Un fiado corregido, sin borrar nada |
+| <img src="docs/capturas/compartir-pago.png" width="230"> | <img src="docs/capturas/metodos-pago.png" width="230"> | <img src="docs/capturas/mi-negocio.png" width="230"> |
+| Pasarle los datos para que transfiera | Las cuentas para cobrar | Cuánta plata hay en la calle |
 
 ## Las tres decisiones que definen la app
 
