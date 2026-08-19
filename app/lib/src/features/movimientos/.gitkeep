@@ -1,5 +1,0 @@
-# Sprint 2 — HU-03 registrar fiado, HU-04 registrar pago, HU-05 ver saldo.
-# Sprint 4 — HU-10 corrección vía movimiento AJUSTE.
-#
-# Los movimientos son INMUTABLES: no hay edición ni borrado, una corrección es
-# un AJUSTE nuevo que referencia al original.
