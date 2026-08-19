@@ -491,6 +491,8 @@
           <ol>
             <li><a href="#iphone">iPhone</a></li>
             <li><a href="#windows">Windows</a></li>
+            <li><a href="#offline">Base local cifrada</a></li>
+            <li><a href="#android-emulador">Android, sin conexión</a></li>
           </ol>
         </li>
         <li><a href="#produccion"><span class="n">6</span><span>Verificación en producción</span></a></li>
@@ -522,7 +524,7 @@
           </div>
           <div class="cifra">
             <dt>Defectos</dt>
-            <dd>17<small>encontrados y corregidos</small></dd>
+            <dd>18<small>encontrados y corregidos</small></dd>
           </div>
         </dl>
 
@@ -604,7 +606,7 @@ cd app     &amp;&amp; flutter test   # 29 pruebas</code></pre>
           <li><strong>Restricciones de unicidad.</strong> Viven en PostgreSQL, no en el código.</li>
           <li><strong>Concurrencia real.</strong> Requiere una base de verdad; se verificó a mano y está documentado abajo.</li>
           <li><strong>Interfaz de usuario.</strong> No hay pruebas de widgets ni de integración. El recorrido con capturas (<a href="#recorrido">sección 4</a>) es lo más cerca que hay, y encontró un defecto.</li>
-          <li><strong>Modo sin conexión y notificaciones.</strong> Solo existen en Android y Windows.</li>
+          <li><strong>Modo sin conexión y notificaciones.</strong> Solo existen en Android y Windows. El cifrado de la base local se verificó a mano (<a href="#offline">sección 5.3</a>); las notificaciones siguen sin probarse.</li>
         </ul>
       </section>
 
@@ -1059,12 +1061,153 @@ flutter run -d web-server --web-port=5000 --web-hostname=0.0.0.0 \
             denegado” aun con la app cerrada y en una carpeta recién creada.
           </p>
           <p>
-            No es un problema del proyecto ni del código. Se resuelve
-            agregando la carpeta del repositorio a las exclusiones del
-            antivirus. Es el mismo antivirus que obliga al rodeo del almacén de
-            certificados de Java descrito en <code>app/README.md</code>.
+            No es un problema del proyecto ni del código, y —contra lo que
+            parece— <strong>excluir la carpeta del antivirus no lo arregla</strong>.
+            El bloqueo resultó ser por ruta y nombre exactos; cómo se acotó y
+            cómo se resolvió está en la <a href="#offline">sección 5.3</a>.
           </p>
         </div>
+      
+        <h3 id="offline">5.3 Windows — la base local cifrada</h3>
+
+        <p>
+          El modo sin conexión guarda los clientes y los movimientos en una base
+          SQLite <strong>cifrada con SQLCipher</strong> dentro del dispositivo.
+          Hasta acá era código que compilaba y pasaba el análisis, pero que
+          <strong>nunca se había ejecutado</strong>: no había forma de afirmar
+          que el cifrado estuviera activo de verdad.
+        </p>
+
+        <p>
+          Se compiló la app de escritorio, se entró con la cuenta de
+          demostración y se leyó el archivo que quedó en disco.
+        </p>
+
+        <div class="tabla">
+          <table>
+            <thead><tr><th>Verificación</th><th>Resultado</th></tr></thead>
+            <tbody>
+              <tr><td>La base se crea al entrar</td><td><span class="marca ok">Sí</span> — 20.480 bytes en <code>%APPDATA%\com.fiadodigital\</code></td></tr>
+              <tr><td>Primeros bytes del archivo</td><td><code>92 d7 4c 09 8d 7b 68 39 …</code></td></tr>
+              <tr><td>¿Empieza con <code>SQLite format 3</code>?</td><td><span class="marca ok">No</span> — una base sin cifrar siempre empieza así</td></tr>
+              <tr><td>Nombres de clientes legibles en el archivo</td><td><span class="marca ok">Ninguno</span></td></tr>
+              <tr><td>Nombres de tablas legibles</td><td><span class="marca ok">Ninguno</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>
+          Que no aparezca ni el nombre de las tablas es lo que cierra el caso: si
+          el binario empaquetado no fuera el de SQLCipher, el esquema se leería
+          en claro aunque los datos no.
+        </p>
+
+        <div class="nota">
+          <span class="rotulo">Qué prueba esto, y qué no</span>
+          <p>
+            Verifica que la base <em>existe, está cifrada y la app la usa</em>.
+            No dice nada del circuito completo —anotar sin internet, que quede
+            en la cola, y que se suba al volver la señal—, que se probó aparte
+            en Android y está en la <a href="#android-emulador">sección 5.4</a>.
+          </p>
+        </div>
+
+        <div class="nota roja">
+          <span class="rotulo">Un antivirus puede bloquear una ruta, no solo un archivo</span>
+          <p>
+            El ejecutable de depuración no se podía generar: el compilador moría
+            con <code>LNK1104</code> sobre una ruta que no existía. Excluir la
+            carpeta del antivirus no cambió nada.
+          </p>
+          <p>
+            La prueba que lo aclaró fue escribir archivos a mano: en esa misma
+            carpeta, <code>otro.exe</code> se creaba sin problema y
+            <code>fiado_digital.exe</code> daba “acceso denegado”; y ese mismo
+            nombre se escribía bien en cualquier otra carpeta. O sea, el bloqueo
+            era por <strong>ruta y nombre exactos</strong> — el rastro de una
+            cuarentena vieja, que una exclusión posterior no deshace.
+          </p>
+          <p>
+            La salida fue compilar en modo <em>release</em>, que escribe en
+            <code>Release\</code> en vez de <code>Debug\</code>. Otra ruta, sin
+            bloqueo.
+          </p>
+        </div>
+
+      
+        <h3 id="android-emulador">5.4 Android — el circuito sin conexión, entero</h3>
+
+        <p>
+          Android es la plataforma para la que se pensó la app, y hasta acá era
+          la menos probada: no había ningún dispositivo a mano. Se creó un
+          emulador con Android 15 y Google Play, se compiló el APK y se recorrió
+          la aplicación de verdad.
+        </p>
+
+        <div class="tabla">
+          <table>
+            <thead><tr><th>Verificación</th><th>Resultado</th></tr></thead>
+            <tbody>
+              <tr><td>Compilación e instalación del APK</td><td><span class="marca ok">OK</span> 43 s</td></tr>
+              <tr><td>Login con correo y contraseña</td><td><span class="marca ok">OK</span></td></tr>
+              <tr><td>La sesión sobrevive a cerrar la app</td><td><span class="marca ok">OK</span> entra sola tras un cierre forzado</td></tr>
+              <tr><td>Listado, saldos y aviso de mora</td><td><span class="marca ok">OK</span> 24 clientes, 5 atrasados, 457.000 Gs</td></tr>
+              <tr><td>Permiso de notificaciones (Android 13+)</td><td><span class="marca ok">OK</span> lo pide y queda concedido</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h4>Cortar la red y seguir trabajando</h4>
+
+        <p>
+          Esta es la prueba que nunca se había hecho y la razón de ser de HU-07.
+          Se apagó la red del dispositivo, se anotó un fiado, y se la volvió a
+          encender.
+        </p>
+
+        <div class="tabla">
+          <table>
+            <thead><tr><th>Paso</th><th>Resultado</th></tr></thead>
+            <tbody>
+              <tr><td>Apagar la red</td><td>Franja: <em>“Sin internet. Podés seguir anotando igual.”</em></td></tr>
+              <tr><td>Abrir un cliente sin red</td><td><span class="marca ok">OK</span> <strong>después de corregir el defecto 18</strong></td></tr>
+              <tr><td>Saldo, límite e historial sin red</td><td><span class="marca ok">OK</span> desde la copia local cifrada</td></tr>
+              <tr><td>Saldo resultante y aviso de límite</td><td><span class="marca ok">OK</span> calculados sin tocar el servidor</td></tr>
+              <tr><td>Anotar un fiado de 37.000</td><td><span class="marca ok">OK</span> el saldo pasó de 370.000 a 407.000</td></tr>
+              <tr><td>Cómo se ve lo no subido</td><td>Marcado <em>“sin subir”</em>, y sin opción de corregir</td></tr>
+              <tr><td>Volver a encender la red</td><td><span class="marca ok">OK</span> subió solo, sin que nadie tocara nada</td></tr>
+              <tr><td>Estado final en el servidor</td><td><span class="marca ok">407.000 Gs</span> con la fecha en que se anotó</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="nota">
+          <span class="rotulo">El detalle que más importa de esa última fila</span>
+          <p>
+            El movimiento llegó al servidor con la hora en que el despensero lo
+            anotó, no con la hora en que se subió. En un cuaderno de fiados eso
+            no es un lujo: es la diferencia entre un registro fiel y uno
+            reescrito. Si el orden de los movimientos cambiara al sincronizar,
+            el historial dejaría de coincidir con lo que pasó en el mostrador.
+          </p>
+        </div>
+
+        <p>
+          No se pudo verificar el <strong>login con Google en Android</strong>:
+          el emulador no confía en el certificado del antivirus de la máquina, y
+          sus conexiones con los servidores de Google fallan antes de llegar a
+          la app. Es una limitación del entorno de prueba, no del proyecto.
+        </p>
+
+        <p>
+          Tampoco se logró <strong>ver la notificación de mora en pantalla</strong>.
+          Lo que sí quedó comprobado: la app pide el permiso, Android registra la
+          alarma para las 09:00 con el receptor correcto, la ejecuta a horario y
+          la reprograma para el día siguiente. Falta el último tramo —que el
+          aviso se dibuje—, y el método usado para provocarlo (mover el reloj del
+          sistema) no permite distinguir un defecto de un artefacto de la prueba.
+        </p>
+
       </section>
 
 
@@ -1270,17 +1413,18 @@ cd tools/capturas &amp;&amp; npm run capturar     # las once capturas, ~90 segun
               <tr><td class="orden">15</td><td><strong>“Pasarle cómo pagarme” decía que no había ninguna cuenta cargada</strong> la primera vez que se abría en cada sesión, teniéndolas</td><td>Al automatizar las capturas</td></tr>
               <tr><td class="orden">16</td><td>La etiqueta “100%” de la barra de recuperación salía cortada al medio</td><td>Al revisar las capturas generadas</td></tr>
               <tr><td class="orden">17</td><td><strong>La franja decía “Sin internet, podés seguir anotando igual” aunque la base local no estuviera disponible</strong>, y cada fiado fallaba</td><td>Al verificar el modo sin conexión en Windows</td></tr>
+              <tr><td class="orden">18</td><td><strong>Sin conexión no se podía abrir ningún cliente</strong>, una pantalla después de prometer que se podía seguir anotando</td><td>Probando el circuito sin conexión en Android</td></tr>
             </tbody>
           </table>
         </div>
 
         <p>
-          Vale la pena mirar la columna de la derecha. <strong>Ocho de los
-          diecisiete no había forma de encontrarlos leyendo código</strong>:
+          Vale la pena mirar la columna de la derecha. <strong>Nueve de los
+          dieciocho no había forma de encontrarlos leyendo código</strong>:
           tres solo en un celular real, uno solo con veinte peticiones
           simultáneas, uno solo al cambiar de cuenta, dos solo al mirar
-          capturas de las pantallas terminadas, y uno al ir a probar el modo sin
-          conexión en Windows.
+          capturas de las pantallas terminadas, uno al ir a probar el modo sin
+          conexión en Windows, y uno al cortarle la red a un Android de verdad.
         </p>
 
         <h3>El defecto 7, el más serio</h3>

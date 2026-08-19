@@ -130,7 +130,7 @@ class ClientesController extends AsyncNotifier<ClientesState> {
       final filtrados = _filtrarLocalmente(locales, busqueda);
 
       return ClientesState(
-        clientes: [for (final c in filtrados) _aCliente(c)],
+        clientes: [for (final c in filtrados) _clienteDesdeLocal(c)],
         pagina: 1,
         totalPaginas: 1,
         total: filtrados.length,
@@ -156,17 +156,6 @@ class ClientesController extends AsyncNotifier<ClientesState> {
               (c.telefono?.contains(texto) ?? false),
         )
         .toList();
-  }
-
-  Cliente _aCliente(ClienteLocal local) {
-    return Cliente(
-      id: local.id,
-      nombre: local.nombre,
-      saldoActual: local.saldoActual,
-      createdAt: local.createdAt,
-      telefono: local.telefono,
-      limiteCredito: local.limiteCredito,
-    );
   }
 
   Future<void> cargarMas() async {
@@ -277,12 +266,51 @@ final filtroSoloMoraProvider = NotifierProvider<FiltroClientes, bool>(
   FiltroClientes.new,
 );
 
-/// Detalle de un cliente puntual, siempre fresco desde el backend.
-final clienteProvider = FutureProvider.family<Cliente, String>((ref, id) {
+/// Cómo se ve un cliente guardado en el dispositivo.
+///
+/// Vive fuera del notifier porque lo usan los dos caminos que leen la copia
+/// local: la lista y el detalle.
+Cliente _clienteDesdeLocal(ClienteLocal local) {
+  return Cliente(
+    id: local.id,
+    nombre: local.nombre,
+    saldoActual: local.saldoActual,
+    createdAt: local.createdAt,
+    telefono: local.telefono,
+    limiteCredito: local.limiteCredito,
+  );
+}
+
+/// Detalle de un cliente puntual.
+///
+/// Se pide al servidor y, solo si de verdad no hubo red, se muestra la copia
+/// local — el mismo criterio que la lista y que el historial.
+///
+/// Antes iba derecho al backend, sin alternativa. El resultado era que sin
+/// señal la lista de clientes se veía pero **ninguno se podía abrir**: salía
+/// "no se pudo conectar con el servidor" justo después de que la franja de
+/// arriba dijera "podés seguir anotando igual". La app prometía algo que no
+/// cumplía una pantalla más adelante.
+///
+/// El saldo que devuelve la copia local ya incluye lo anotado sin conexión:
+/// al encolar un movimiento también se ajusta el saldo guardado.
+final clienteProvider = FutureProvider.family<Cliente, String>((ref, id) async {
   // Misma razón que en la lista: si cambia la despensa, este detalle se
   // reconstruye en vez de quedar mostrando el de la sesión anterior.
   ref.watch(
     authControllerProvider.select((estado) => estado.usuario?.despensaId),
   );
-  return ref.watch(clientesApiProvider).obtener(id);
+
+  final base = ref.watch(baseLocalSiEstaListaProvider);
+
+  try {
+    return await ref.watch(clientesApiProvider).obtener(id);
+  } on ApiException catch (e) {
+    if (!e.esFallaDeRed || base == null) rethrow;
+
+    final local = await base.leerCliente(id);
+    if (local == null) rethrow;
+
+    return _clienteDesdeLocal(local);
+  }
 });
